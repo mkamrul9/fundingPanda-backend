@@ -2,18 +2,46 @@ import express, { Application } from 'express';
 import cors from 'cors';
 import router from './routes';
 import globalErrorHandler from './middlewares/globalErrorHandler';
+import notFound from './middlewares/notFound';
+import { toNodeHandler } from 'better-auth/node';
+import { auth } from './lib/auth';
+import 'dotenv/config';
+
 
 const app: Application = express();
 
 // Parsers
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true, // Required for cookies/sessions
+}));
+
+// BetterAuth Core Route 
+const betterAuthBaseURL = process.env.BETTER_AUTH_URL || `http://localhost:${process.env.PORT || 5000}`;
+app.use('/api/auth', (req, _res, next) => {
+    console.log('BetterAuth request headers:', {
+        origin: req.headers.origin,
+        host: req.headers.host,
+        referer: req.headers.referer,
+    });
+
+    // Normalize Origin to the configured BetterAuth baseURL during local development
+    // This avoids 'Invalid origin' errors when frontend origin validation is strict
+    // Do not reassign `req.headers` (keeps types intact) — set the origin property on a typed view.
+    const headersTyped = req.headers as Record<string, string | string[] | undefined>;
+    headersTyped.origin = betterAuthBaseURL;
+
+    next();
+}, toNodeHandler(auth));
 
 // Application Routes
 app.use('/api/v1', router);
 
-
 // ... after routes
 app.use(globalErrorHandler);
+
+// Not Found Route Handler 
+app.use(notFound);
 
 export default app;
