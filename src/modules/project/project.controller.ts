@@ -25,13 +25,15 @@ const createProject = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getAllProjects = catchAsync(async (req: Request, res: Response) => {
-    const result = await ProjectService.getAllProjectsFromDB();
+    // Pass the query parameters from the request
+    const result = await ProjectService.getAllProjectsFromDB(req.query);
 
     sendResponse(res, {
         statusCode: 200,
         success: true,
         message: 'Projects retrieved successfully',
-        data: result,
+        data: result.data, // Access the data array
+        meta: result.meta, // Access the pagination metadata
     });
 });
 
