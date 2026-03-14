@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import { UserRoutes } from '../modules/user/user.route';
 import { ProjectRoutes } from '../modules/project/project.route';
+import { HardwareRoutes } from '../modules/hardware/hardware.route';
 
 const router = Router();
 
@@ -14,6 +15,10 @@ const moduleRoutes = [
         path: '/projects',
         route: ProjectRoutes,
     },
+    {
+        path: '/hardware',
+        route: HardwareRoutes
+    }
 ];
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route));
