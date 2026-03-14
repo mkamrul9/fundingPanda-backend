@@ -6,6 +6,8 @@ import notFound from './middlewares/notFound';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './lib/auth';
 import 'dotenv/config';
+import { generateNumericOTP, generateRandomToken } from './utils/token';
+import { signToken, verifyToken } from './utils/jwt';
 
 
 const app: Application = express();
@@ -34,6 +36,20 @@ app.use('/api/auth', (req, _res, next) => {
 
     next();
 }, toNodeHandler(auth));
+
+// to test jwt and token
+// app.get('/api/test-utils', (req, res) => {
+//     const otp = generateNumericOTP();
+//     const randomStr = generateRandomToken(16);
+
+//     // Sign a dummy token
+//     const jwtToken = signToken({ testId: '123' }, process.env.JWT_ACCESS_SECRET as string, '1h');
+
+//     // Verify it immediately
+//     const decoded = verifyToken(jwtToken, process.env.JWT_ACCESS_SECRET as string);
+
+//     res.json({ success: true, otp, randomStr, jwtToken, decoded });
+// });
 
 // Application Routes
 app.use('/api/v1', router);
