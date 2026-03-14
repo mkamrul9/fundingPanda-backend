@@ -3,6 +3,8 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { bearer, emailOTP } from "better-auth/plugins";
 import { UserRole } from "@prisma/client";
 import prisma from "./prisma";
+import { sendEmail } from "../utils/email";
+
 
 export const auth = betterAuth({
     // Public URL used by BetterAuth for callbacks/redirects and origin validation
@@ -13,7 +15,7 @@ export const auth = betterAuth({
 
     emailAndPassword: {
         enabled: true,
-        requireEmailVerification: false, // We can toggle this later when email is set up
+        requireEmailVerification: true,
     },
 
     user: {
@@ -41,11 +43,33 @@ export const auth = betterAuth({
 
     plugins: [
         bearer(),
-        // We will configure emailOTP fully in a later phase when we set up the email utility
+        // Add the emailOTP plugin here
+        emailOTP({
+            async sendVerificationOTP({ email, otp, type, user }) {
+                if (type === "email-verification") {
+                    // Send verification OTP regardless of whether the user record exists yet.
+                    // Use user's name when available, otherwise fall back to the email local-part.
+                    const nameFallback = user?.name || email.split('@')[0];
+
+                    // Call our Nodemailer utility
+                    await sendEmail({
+                        to: email,
+                        subject: "Verify your email for FundingPanda",
+                        templateName: "otp",
+                        templateData: {
+                            name: nameFallback,
+                            otp,
+                        },
+                    });
+                }
+            },
+            expiresIn: 2 * 60, // OTP expires in 2 minutes
+            otpLength: 6,
+        })
     ],
 
     advanced: {
-        useSecureCookies: false, // Set to true in production
+        useSecureCookies: false,
     }
     ,
     // Allow the frontend origin and server base URL for BetterAuth origin checks
