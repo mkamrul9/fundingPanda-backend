@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import catchAsync from '../../utils/catchAsync';
-import sendResponse from '../../utils/sendResponse';
+import catchAsync from '../../shared/catchAsync';
+import sendResponse from '../../shared/sendResponse';
 import { HardwareService } from './hardware.service';
 
 const createHardware = catchAsync(async (req: Request, res: Response) => {

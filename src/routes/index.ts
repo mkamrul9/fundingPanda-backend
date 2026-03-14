@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { UserRoutes } from '../modules/user/user.route';
 import { ProjectRoutes } from '../modules/project/project.route';
 import { HardwareRoutes } from '../modules/hardware/hardware.route';
+import { DonationRoutes } from '../modules/donation/donation.route';
 
 const router = Router();
 
@@ -18,7 +19,11 @@ const moduleRoutes = [
     {
         path: '/hardware',
         route: HardwareRoutes
-    }
+    },
+    {
+        path: '/donations',
+        route: DonationRoutes
+    },
 ];
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route));
