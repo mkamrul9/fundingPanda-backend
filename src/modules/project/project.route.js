@@ -13,7 +13,10 @@ router.post(
     validateRequest(ProjectValidation.createProjectZodSchema),
     ProjectController.createProject
 );
-
 router.get('/', ProjectController.getAllProjects);
+router.get('/:id', ProjectController.getSingleProject);
+router.put('/:id', checkAuth(UserRole.STUDENT), ProjectController.updateProject);
+router.delete('/:id', checkAuth(UserRole.STUDENT, UserRole.ADMIN), ProjectController.deleteProject);
+
 
 export const ProjectRoutes = router;
