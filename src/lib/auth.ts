@@ -16,6 +16,16 @@ export const auth = betterAuth({
     emailAndPassword: {
         enabled: true,
         requireEmailVerification: true,
+        async sendResetPassword(data, request) {
+            await sendEmail({
+                to: data.user.email,
+                subject: "Reset your FundingPanda Password",
+                templateName: "reset-password",
+                templateData: {
+                    url: data.url, // BetterAuth generates this secure, single-use URL automatically!
+                },
+            });
+        },
     },
 
     // Email verification hook used by BetterAuth for email/password flows

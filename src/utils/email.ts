@@ -54,6 +54,23 @@ export const sendEmail = async (options: TEmailOptions) => {
     `;
     }
 
+    if (options.templateName === 'reset-password') {
+        const url = options.templateData.url || '#';
+        htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaec; border-radius: 8px;">
+          <h2 style="color: #333;">Password Reset Request</h2>
+          <p style="color: #555; font-size: 16px;">Hello,</p>
+          <p style="color: #555; font-size: 16px;">We received a request to reset your password for FundingPanda. Click the button below to choose a new password:</p>
+          <div style="text-align:center; margin: 30px 0;">
+              <a href="${url}" style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Reset Password</a>
+          </div>
+          <p style="color: #777; font-size: 14px;">If you did not request this, please ignore this email. This link will expire shortly.</p>
+          <hr style="border: none; border-top: 1px solid #eaeaea; margin-top: 30px;" />
+          <p style="color: #999; font-size: 12px; text-align: center;">© 2026 FundingPanda Inc.</p>
+      </div>
+    `;
+    }
+
     // 3. Define the mail options
     const mailOptions = {
         from: process.env.FROM_EMAIL,
