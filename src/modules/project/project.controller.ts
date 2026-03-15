@@ -3,24 +3,47 @@ import catchAsync from '../../shared/catchAsync';
 import sendResponse from '../../shared/sendResponse';
 import { ProjectService } from './project.service';
 import type { TProject } from './project.interface';
+import { uploadToCloudinary } from '../../utils/cloudinary';
 
 const createProject = catchAsync(async (req: Request, res: Response) => {
-    // 1. Securely extract the ID from the authenticated user session
-    const studentId = req.user?.id;
+    const studentId = req.user?.id as string;
+    let pitchDocUrl = null;
+    const imageUrls: string[] = [];
 
-    // 2. Combine the body payload with the secure studentId
+    // 1. Handle File Uploads (if files were provided)
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+    if (files) {
+        // Upload PDF Document
+        if (files.pitchDoc && files.pitchDoc.length > 0) {
+            const docUpload = await uploadToCloudinary(files.pitchDoc[0].buffer, 'pitch-docs', 'raw');
+            pitchDocUrl = docUpload.secure_url;
+        }
+
+        // Upload Images
+        if (files.images && files.images.length > 0) {
+            for (const file of files.images) {
+                const imageUpload = await uploadToCloudinary(file.buffer, 'prototypes', 'image');
+                imageUrls.push(imageUpload.secure_url);
+            }
+        }
+    }
+
+    // 2. Combine all data
     const projectData = {
         ...req.body,
         studentId,
+        pitchDocUrl, // Add Cloudinary URL to DB
+        images: imageUrls, // Add Cloudinary URLs to DB
     };
 
-    // 3. Send to the database service
+    // 3. Save to Database
     const result = await ProjectService.createProjectIntoDB(projectData);
 
     sendResponse(res, {
         statusCode: 201,
         success: true,
-        message: 'Project created successfully',
+        message: 'Project and media created successfully',
         data: result,
     });
 });

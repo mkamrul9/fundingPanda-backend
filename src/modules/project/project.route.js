@@ -4,12 +4,19 @@ import validateRequest from '../../middlewares/validateRequest';
 import { ProjectValidation } from './project.validation';
 import checkAuth from '../../middlewares/checkAuth';
 import { UserRole } from '@prisma/client';
+import { upload } from '../../middlewares/upload';
+import parseFormData from '../../middlewares/parseFormData';
 
 const router = Router();
 
 router.post(
     '/create-project',
-    checkAuth(UserRole.STUDENT), // Ensure the user is authenticated before allowing project creation
+    checkAuth('STUDENT'),
+    upload.fields([
+        { name: 'pitchDoc', maxCount: 1 }, // Max 1 PDF
+        { name: 'images', maxCount: 5 },   // Max 5 Images
+    ]),
+    parseFormData, // Parse the JSON data before Zod checks it
     validateRequest(ProjectValidation.createProjectZodSchema),
     ProjectController.createProject
 );
