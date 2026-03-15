@@ -1,11 +1,24 @@
 import { ErrorRequestHandler } from 'express';
 import { ZodError } from 'zod';
 import { Prisma } from '@prisma/client';
+import AppError from '../errors/AppError';
 
 const globalErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
     let statusCode = err.statusCode || 500;
     let message = err.message || 'Something went wrong!';
     let errorSources: any = err;
+
+    // 0. Handle AppError explicitly (custom application errors)
+    if (err instanceof AppError) {
+        statusCode = err.statusCode || statusCode;
+        message = err.message || message;
+        errorSources = err;
+        return res.status(statusCode).json({
+            success: false,
+            message,
+            errorSources,
+        });
+    }
 
     // 1. Handle Zod Validation Errors
     if (err instanceof ZodError) {

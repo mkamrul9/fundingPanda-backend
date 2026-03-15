@@ -1,8 +1,19 @@
 import prisma from '../../lib/prisma';
 import { TDonation } from './donation.interface';
 import { QueryBuilder } from '../../utils/QueryBuilder';
+import AppError from '../../errors/AppError';
 
 const createDonationIntoDB = async (payload: TDonation) => {
+    // 1. Check if the project exists and is APPROVED
+    const project = await prisma.project.findUnique({ where: { id: payload.projectId } });
+
+    if (!project) throw new AppError(404, 'Project not found');
+    if (project.status !== 'APPROVED') {
+        throw new AppError(400, 'Bad Request: You can only donate to APPROVED projects');
+    }
+
+    // 2. Proceed with the Transaction...
+
     const [donation, updatedProject] = await prisma.$transaction([
         prisma.donation.create({ data: payload }),
         prisma.project.update({

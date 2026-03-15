@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import catchAsync from '../../shared/catchAsync';
 import sendResponse from '../../shared/sendResponse';
 import { ProjectService } from './project.service';
+import type { TProject } from './project.interface';
 
 const createProject = catchAsync(async (req: Request, res: Response) => {
     // 1. Securely extract the ID from the authenticated user session
@@ -44,12 +45,15 @@ const getSingleProject = catchAsync(async (req: Request, res: Response) => {
 });
 
 const updateProject = catchAsync(async (req: Request, res: Response) => {
-    const result = await ProjectService.updateProjectInDB(req.params.id as string, req.body);
+    const userId = req.user?.id as string;
+    const payload = req.body as Partial<TProject>;
+    const result = await ProjectService.updateProjectInDB(req.params.id as string, userId, payload);
     sendResponse(res, { statusCode: 200, success: true, message: 'Project updated successfully', data: result });
 });
 
 const deleteProject = catchAsync(async (req: Request, res: Response) => {
-    const result = await ProjectService.deleteProjectFromDB(req.params.id as string);
+    const userId = req.user?.id as string;
+    const result = await ProjectService.deleteProjectFromDB(req.params.id as string, userId);
     sendResponse(res, { statusCode: 200, success: true, message: 'Project deleted successfully', data: result });
 });
 
