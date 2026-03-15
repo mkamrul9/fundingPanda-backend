@@ -85,6 +85,7 @@ model Project {
   pitchVideoUrl String?  
   pitchDocUrl   String?  
   images        String[] 
+  adminFeedback String? // NEW: Admin notes for rejected/pending projects
 
   status        ProjectStatus @default(PENDING)
   studentId     String

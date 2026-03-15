@@ -30,7 +30,13 @@ const changeProjectStatus = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getAnalytics = catchAsync(async (req: Request, res: Response) => {
+    const result = await AdminService.getPlatformAnalytics();
+    sendResponse(res, { statusCode: 200, success: true, message: 'Analytics retrieved', data: result });
+});
+
 export const AdminController = {
     verifyUser,
     changeProjectStatus,
+    getAnalytics
 };

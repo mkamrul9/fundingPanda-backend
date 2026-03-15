@@ -17,7 +17,7 @@ const createProject = catchAsync(async (req: Request, res: Response) => {
         // Upload PDF Document
         if (files.pitchDoc && files.pitchDoc.length > 0) {
             const file = files.pitchDoc[0];
-            const docUpload = await uploadToCloudinary(file.buffer, 'pitch-docs', 'raw', file.originalname); // Passed originalname!
+            const docUpload = await uploadToCloudinary(file.buffer, 'pitch-docs', 'image', file.originalname); // Passed originalname!
             pitchDocUrl = docUpload.secure_url;
         }
 
@@ -89,7 +89,7 @@ const updateProject = catchAsync(async (req: Request, res: Response) => {
         }
         // Upload the new one
         const file = files.pitchDoc[0];
-        const docUpload = await uploadToCloudinary(file.buffer, 'pitch-docs', 'raw', file.originalname);
+        const docUpload = await uploadToCloudinary(file.buffer, 'pitch-docs', 'image', file.originalname);
         newPitchDocUrl = docUpload.secure_url;
     }
 

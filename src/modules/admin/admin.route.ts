@@ -13,12 +13,12 @@ router.patch(
     validateRequest(AdminValidation.verifyUserZodSchema),
     AdminController.verifyUser
 );
-
 router.patch(
     '/projects/:id/status',
     checkAuth('ADMIN'),
     validateRequest(AdminValidation.updateProjectStatusZodSchema),
     AdminController.changeProjectStatus
 );
+router.get('/analytics', checkAuth('ADMIN'), AdminController.getAnalytics);
 
 export const AdminRoutes = router;
