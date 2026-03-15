@@ -22,7 +22,16 @@ router.post(
 );
 router.get('/', ProjectController.getAllProjects);
 router.get('/:id', ProjectController.getSingleProject);
-router.put('/:id', checkAuth(UserRole.STUDENT), ProjectController.updateProject);
+router.patch(
+    '/:id',
+    checkAuth('STUDENT'),
+    upload.fields([
+        { name: 'pitchDoc', maxCount: 1 },
+        { name: 'images', maxCount: 5 },
+    ]),
+    parseFormData,
+    ProjectController.updateProject // We will update this next
+);
 router.delete('/:id', checkAuth(UserRole.STUDENT, UserRole.ADMIN), ProjectController.deleteProject);
 
 

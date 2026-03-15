@@ -3,7 +3,7 @@ import catchAsync from '../../shared/catchAsync';
 import sendResponse from '../../shared/sendResponse';
 import { ProjectService } from './project.service';
 import type { TProject } from './project.interface';
-import { uploadToCloudinary } from '../../utils/cloudinary';
+import { uploadToCloudinary, deleteFromCloudinary, extractCloudinaryPublicId } from '../../utils/cloudinary';
 
 const createProject = catchAsync(async (req: Request, res: Response) => {
     const studentId = req.user?.id as string;
@@ -16,14 +16,15 @@ const createProject = catchAsync(async (req: Request, res: Response) => {
     if (files) {
         // Upload PDF Document
         if (files.pitchDoc && files.pitchDoc.length > 0) {
-            const docUpload = await uploadToCloudinary(files.pitchDoc[0].buffer, 'pitch-docs', 'raw');
+            const file = files.pitchDoc[0];
+            const docUpload = await uploadToCloudinary(file.buffer, 'pitch-docs', 'raw', file.originalname); // Passed originalname!
             pitchDocUrl = docUpload.secure_url;
         }
 
         // Upload Images
         if (files.images && files.images.length > 0) {
             for (const file of files.images) {
-                const imageUpload = await uploadToCloudinary(file.buffer, 'prototypes', 'image');
+                const imageUpload = await uploadToCloudinary(file.buffer, 'prototypes', 'image', file.originalname);
                 imageUrls.push(imageUpload.secure_url);
             }
         }
@@ -68,12 +69,56 @@ const getSingleProject = catchAsync(async (req: Request, res: Response) => {
 });
 
 const updateProject = catchAsync(async (req: Request, res: Response) => {
+    const projectId = req.params.id;
     const userId = req.user?.id as string;
-    const payload = req.body as Partial<TProject>;
-    const result = await ProjectService.updateProjectInDB(req.params.id as string, userId, payload);
+
+    // 1. Fetch the existing project to get the old URLs
+    const existingProject = await ProjectService.getSingleProjectFromDB(projectId as string);
+
+    let newPitchDocUrl = existingProject.pitchDocUrl;
+    const newImageUrls = [...existingProject.images]; // Keep existing images by default
+
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+    // 2. Handle new PDF Upload
+    if (files && files.pitchDoc && files.pitchDoc.length > 0) {
+        // Delete the old one from Cloudinary if it exists
+        if (existingProject.pitchDocUrl) {
+            const publicId = extractCloudinaryPublicId(existingProject.pitchDocUrl, 'raw');
+            if (publicId) await deleteFromCloudinary(publicId, 'raw');
+        }
+        // Upload the new one
+        const file = files.pitchDoc[0];
+        const docUpload = await uploadToCloudinary(file.buffer, 'pitch-docs', 'raw', file.originalname);
+        newPitchDocUrl = docUpload.secure_url;
+    }
+
+    // 3. Handle new Image Uploads (Assuming a total replacement for simplicity)
+    if (files && files.images && files.images.length > 0) {
+        // Delete all old images from Cloudinary
+        for (const oldImageUrl of existingProject.images) {
+            const publicId = extractCloudinaryPublicId(oldImageUrl, 'image');
+            if (publicId) await deleteFromCloudinary(publicId, 'image');
+        }
+        // Clear the array and upload the new ones
+        newImageUrls.length = 0;
+        for (const file of files.images) {
+            const imageUpload = await uploadToCloudinary(file.buffer, 'prototypes', 'image');
+            newImageUrls.push(imageUpload.secure_url);
+        }
+    }
+
+    // 4. Combine data and update DB
+    const updateData = {
+        ...req.body,
+        pitchDocUrl: newPitchDocUrl,
+        images: newImageUrls,
+    };
+
+    const result = await ProjectService.updateProjectInDB(projectId as string, userId, updateData);
+
     sendResponse(res, { statusCode: 200, success: true, message: 'Project updated successfully', data: result });
 });
-
 const deleteProject = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id as string;
     const result = await ProjectService.deleteProjectFromDB(req.params.id as string, userId);
