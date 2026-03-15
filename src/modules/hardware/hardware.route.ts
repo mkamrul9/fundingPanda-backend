@@ -13,7 +13,17 @@ router.post(
     validateRequest(HardwareValidation.createHardwareZodSchema),
     HardwareController.createHardware
 );
-
 router.get('/', HardwareController.getAllHardware);
+router.get('/:id', HardwareController.getSingleHardware);
+router.patch(
+    '/:id',
+    checkAuth('SPONSOR'),
+    HardwareController.updateHardware
+);
+router.delete(
+    '/:id',
+    checkAuth('SPONSOR', 'ADMIN'), // Admins can also delete inappropriate hardware listings
+    HardwareController.deleteHardware
+);
 
 export const HardwareRoutes = router;

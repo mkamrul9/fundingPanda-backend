@@ -8,10 +8,10 @@ import { UserRole } from '@prisma/client';
 const router = Router();
 
 router.post(
-    '/create-donation',
-    checkAuth(UserRole.SPONSOR),
+    '/initiate-payment',
+    checkAuth('SPONSOR'),
     validateRequest(DonationValidation.createDonationZodSchema),
-    DonationController.createDonation
+    DonationController.initiatePayment
 );
 
 router.get('/', DonationController.getAllDonations);
