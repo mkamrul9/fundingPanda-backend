@@ -6,11 +6,17 @@ import notFound from './middlewares/notFound';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './lib/auth';
 import 'dotenv/config';
-import { generateNumericOTP, generateRandomToken } from './utils/token';
-import { signToken, verifyToken } from './utils/jwt';
+import { DonationWebhook } from './modules/donation/donation.webhook';
 
 
 const app: Application = express();
+
+// Stripe Webhook needs the raw body
+app.post(
+    '/api/v1/donations/webhook',
+    express.raw({ type: 'application/json' }),
+    DonationWebhook.handleStripeWebhook
+);
 
 // Parsers
 app.use(express.json());

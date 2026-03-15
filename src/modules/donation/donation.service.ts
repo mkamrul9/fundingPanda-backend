@@ -4,26 +4,26 @@ import { QueryBuilder } from '../../utils/QueryBuilder';
 import { stripe } from '../../config/stripe.config';
 import AppError from '../../errors/AppError';
 
-// const createDonationIntoDB = async (payload: TDonation) => {
-//     // 1. Check if the project exists and is APPROVED
-//     const project = await prisma.project.findUnique({ where: { id: payload.projectId } });
+const createDonationIntoDB = async (payload: TDonation) => {
+    // 1. Check if the project exists and is APPROVED
+    const project = await prisma.project.findUnique({ where: { id: payload.projectId } });
 
-//     if (!project) throw new AppError(404, 'Project not found');
-//     if (project.status !== 'APPROVED') {
-//         throw new AppError(400, 'Bad Request: You can only donate to APPROVED projects');
-//     }
+    if (!project) throw new AppError(404, 'Project not found');
+    if (project.status !== 'APPROVED') {
+        throw new AppError(400, 'Bad Request: You can only donate to APPROVED projects');
+    }
 
-//     // 2. Proceed with the Transaction...
+    // 2. Proceed with the Transaction...
 
-//     const [donation, updatedProject] = await prisma.$transaction([
-//         prisma.donation.create({ data: payload }),
-//         prisma.project.update({
-//             where: { id: payload.projectId },
-//             data: { raisedAmount: { increment: payload.amount } },
-//         }),
-//     ]);
-//     return { donation, updatedProject };
-// };
+    const [donation, updatedProject] = await prisma.$transaction([
+        prisma.donation.create({ data: payload }),
+        prisma.project.update({
+            where: { id: payload.projectId },
+            data: { raisedAmount: { increment: payload.amount } },
+        }),
+    ]);
+    return { donation, updatedProject };
+};
 
 const getAllDonationsFromDB = async (query: Record<string, unknown>) => {
     const donationQuery = new QueryBuilder(
@@ -88,9 +88,8 @@ const createCheckoutSession = async (userId: string, payload: { amount: number, 
     return { paymentUrl: session.url };
 };
 
-// ... export it
 export const DonationService = {
-    // createDonationIntoDB,
+    createDonationIntoDB,
     getAllDonationsFromDB,
     createCheckoutSession
 };

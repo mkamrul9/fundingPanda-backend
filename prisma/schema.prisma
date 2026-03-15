@@ -80,6 +80,12 @@ model Project {
   description   String
   goalAmount    Float
   raisedAmount  Float         @default(0)
+
+  // New Fields for Pitch Files
+  pitchVideoUrl String?  
+  pitchDocUrl   String?  
+  images        String[] 
+
   status        ProjectStatus @default(PENDING)
   studentId     String
   student       User          @relation(fields: [studentId], references: [id])
