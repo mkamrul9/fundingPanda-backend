@@ -83,6 +83,14 @@ model User {
   resources     Resource[]
   claims        ResourceClaim[]
 
+  // Reviews
+  reviewsGiven    Review[]  @relation("ReviewsGiven")
+  reviewsReceived Review[]  @relation("ReviewsReceived")
+  
+  // Chat
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+
   @@map("users")
 }
 
@@ -144,6 +152,8 @@ model Project {
   student       User          @relation(fields: [studentId], references: [id])
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+  timelineEvents  TimelineEvent[]
+  reviews         Review[]
   categories  Category[] // Project domains
   
   donations     Donation[]
@@ -176,6 +186,55 @@ model Donation {
 
   @@map("donations")
 }
+model TimelineEvent {
+  id          String            @id @default(uuid())
+  projectId   String
+  project     Project           @relation(fields: [projectId], references: [id])
+  
+  type        TimelineEventType
+  title       String
+  description String?           // Details of the work done
+  mediaUrl    String?           // Cloudinary link for images/videos of the work
+  
+  createdAt   DateTime          @default(now())
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  rating      Int      // 1 to 5 stars
+  comment     String?
+  
+  // The person writing the review
+  reviewerId  String
+  reviewer    User     @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  
+  // The person receiving the review
+  revieweeId  String
+  reviewee    User     @relation("ReviewsReceived", fields: [revieweeId], references: [id])
+  
+  // The project this review is associated with
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id])
+
+  createdAt   DateTime @default(now())
+
+  @@unique([reviewerId, projectId]) // A user can only review a specific project once
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  content     String?  // Text content (optional if just sending an image)
+  imageUrl    String?  // Cloudinary URL for shared images/prototypes
+  
+  senderId    String
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  
+  receiverId  String
+  receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
 
 enum UserRole {
   STUDENT
@@ -193,4 +252,10 @@ enum ProjectStatus {
 enum ResourceType {
   HARDWARE
   SOFTWARE
+}
+
+enum TimelineEventType {
+  MILESTONE   // Student uploaded work/prototype
+  DONATION    // Sponsor sent money
+  STATUS_SYNC // Project marked as COMPLETED by Sponsor
 }
