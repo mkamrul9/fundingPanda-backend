@@ -358,17 +358,18 @@ var checkAuth = (...requiredRoles) => {
 var checkAuth_default = checkAuth;
 
 // src/modules/user/user.route.ts
+var import_client3 = require("@prisma/client");
 var router = (0, import_express.Router)();
-router.get("/", UserController.getAllUsers);
+router.get("/", checkAuth_default(import_client3.UserRole.ADMIN), UserController.getAllUsers);
 router.get(
   "/me",
-  checkAuth_default("STUDENT", "SPONSOR", "ADMIN"),
+  checkAuth_default(import_client3.UserRole.STUDENT, import_client3.UserRole.SPONSOR, import_client3.UserRole.ADMIN),
   // Anyone logged in can view their profile
   UserController.getMyProfile
 );
 router.patch(
   "/me",
-  checkAuth_default("STUDENT", "SPONSOR", "ADMIN"),
+  checkAuth_default(import_client3.UserRole.STUDENT, import_client3.UserRole.SPONSOR, import_client3.UserRole.ADMIN),
   UserController.updateMyProfile
 );
 var UserRoutes = router;
@@ -952,7 +953,7 @@ var ProjectValidation = {
 };
 
 // src/modules/project/project.route.js
-var import_client3 = require("@prisma/client");
+var import_client4 = require("@prisma/client");
 
 // src/middlewares/upload.ts
 var import_multer = __toESM(require("multer"), 1);
@@ -1015,152 +1016,150 @@ router2.patch(
   ProjectController.updateProject
   // We will update this next
 );
-router2.delete("/:id", checkAuth_default(import_client3.UserRole.STUDENT, import_client3.UserRole.ADMIN), ProjectController.deleteProject);
+router2.delete("/:id", checkAuth_default(import_client4.UserRole.STUDENT, import_client4.UserRole.ADMIN), ProjectController.deleteProject);
 var ProjectRoutes = router2;
 
-// src/modules/hardware/hardware.route.ts
+// src/modules/resource/resource.route.ts
 var import_express3 = require("express");
 
-// src/modules/hardware/hardware.service.ts
-var createHardwareIntoDB = async (payload) => {
-  return await prisma_default.hardware.create({ data: payload });
+// src/modules/resource/resource.service.ts
+var createResourceIntoDB = async (payload) => {
+  return await prisma_default.resource.create({ data: payload });
 };
-var getAllHardwareFromDB = async (query) => {
-  const hardwareQuery = new QueryBuilder(
-    prisma_default.hardware,
+var getAllResourcesFromDB = async (query) => {
+  const resourceQuery = new QueryBuilder(
+    prisma_default.resource,
     query,
     {
-      searchableFields: ["name", "category", "description", "lender.name"],
-      filterableFields: ["category", "isAvailable", "lenderId"]
+      searchableFields: ["name", "description", "lender.name"],
+      filterableFields: ["type", "availableQuantity", "lenderId"]
     }
   ).search().filter().sort().paginate().fields().dynamicInclude(
     { lender: { select: { name: true, email: true, bio: true } } },
     ["lender"]
   );
-  return await hardwareQuery.execute();
+  return await resourceQuery.execute();
 };
-var getSingleHardwareFromDB = async (id) => {
-  return await prisma_default.hardware.findUniqueOrThrow({
+var getSingleResourceFromDB = async (id) => {
+  return await prisma_default.resource.findUniqueOrThrow({
     where: { id },
     include: {
       lender: { select: { name: true, email: true, bio: true } }
     }
   });
 };
-var updateHardwareInDB = async (id, userId, payload) => {
-  const hardware = await prisma_default.hardware.findUnique({ where: { id } });
-  if (!hardware) throw new AppError_default(404, "Hardware not found");
-  if (hardware.lenderId !== userId) {
-    throw new AppError_default(403, "Forbidden: You can only edit your own hardware listings");
+var updateResourceInDB = async (id, userId, payload) => {
+  const resource = await prisma_default.resource.findUnique({ where: { id } });
+  if (!resource) throw new AppError_default(404, "Resource not found");
+  if (resource.lenderId !== userId) {
+    throw new AppError_default(403, "Forbidden: You can only edit your own resources");
   }
-  return await prisma_default.hardware.update({
+  return await prisma_default.resource.update({
     where: { id },
     data: payload
   });
 };
-var deleteHardwareFromDB = async (id, userId) => {
-  const hardware = await prisma_default.hardware.findUnique({ where: { id } });
-  if (!hardware) throw new AppError_default(404, "Hardware not found");
-  if (hardware.lenderId !== userId) {
-    throw new AppError_default(403, "Forbidden: You can only delete your own hardware listings");
+var deleteResourceFromDB = async (id, userId) => {
+  const resource = await prisma_default.resource.findUnique({ where: { id } });
+  if (!resource) throw new AppError_default(404, "Resource not found");
+  if (resource.lenderId !== userId) {
+    throw new AppError_default(403, "Forbidden: You can only delete your own resources");
   }
-  if (!hardware.isAvailable) {
-    throw new AppError_default(400, "Bad Request: Cannot delete hardware that is currently rented out to a student");
+  if (resource.availableQuantity < resource.totalQuantity) {
+    throw new AppError_default(400, "Bad Request: Cannot delete a resource with active allocations");
   }
-  return await prisma_default.hardware.delete({
-    where: { id }
-  });
+  return await prisma_default.resource.delete({ where: { id } });
 };
-var HardwareService = {
-  createHardwareIntoDB,
-  getAllHardwareFromDB,
-  getSingleHardwareFromDB,
-  updateHardwareInDB,
-  deleteHardwareFromDB
+var ResourceService = {
+  createResourceIntoDB,
+  getAllResourcesFromDB,
+  getSingleResourceFromDB,
+  updateResourceInDB,
+  deleteResourceFromDB
 };
 
-// src/modules/hardware/hardware.controller.ts
-var createHardware = catchAsync_default(async (req, res) => {
+// src/modules/resource/resource.controller.ts
+var createResource = catchAsync_default(async (req, res) => {
   const lenderId = req.user?.id;
-  const hardwareData = {
+  const resourceData = {
     ...req.body,
     lenderId
   };
-  const result = await HardwareService.createHardwareIntoDB(hardwareData);
+  const result = await ResourceService.createResourceIntoDB(resourceData);
   sendResponse_default(res, {
     statusCode: 201,
     success: true,
-    message: "Hardware listed successfully",
+    message: "Resource listed successfully",
     data: result
   });
 });
-var getAllHardware = catchAsync_default(async (req, res) => {
-  const result = await HardwareService.getAllHardwareFromDB(req.query);
+var getAllResources = catchAsync_default(async (req, res) => {
+  const result = await ResourceService.getAllResourcesFromDB(req.query);
   sendResponse_default(res, {
     statusCode: 200,
     success: true,
-    message: "Available hardware retrieved successfully",
+    message: "Resources retrieved successfully",
     meta: result.meta,
-    // Add pagination meta
     data: result.data
   });
 });
-var getSingleHardware = catchAsync_default(async (req, res) => {
-  const result = await HardwareService.getSingleHardwareFromDB(req.params.id);
-  sendResponse_default(res, { statusCode: 200, success: true, message: "Hardware retrieved successfully", data: result });
+var getSingleResource = catchAsync_default(async (req, res) => {
+  const result = await ResourceService.getSingleResourceFromDB(req.params.id);
+  sendResponse_default(res, { statusCode: 200, success: true, message: "Resource retrieved successfully", data: result });
 });
-var updateHardware = catchAsync_default(async (req, res) => {
+var updateResource = catchAsync_default(async (req, res) => {
   const userId = req.user?.id;
-  const result = await HardwareService.updateHardwareInDB(req.params.id, userId, req.body);
-  sendResponse_default(res, { statusCode: 200, success: true, message: "Hardware updated successfully", data: result });
+  const result = await ResourceService.updateResourceInDB(req.params.id, userId, req.body);
+  sendResponse_default(res, { statusCode: 200, success: true, message: "Resource updated successfully", data: result });
 });
-var deleteHardware = catchAsync_default(async (req, res) => {
+var deleteResource = catchAsync_default(async (req, res) => {
   const userId = req.user?.id;
-  const result = await HardwareService.deleteHardwareFromDB(req.params.id, userId);
-  sendResponse_default(res, { statusCode: 200, success: true, message: "Hardware deleted successfully", data: result });
+  const result = await ResourceService.deleteResourceFromDB(req.params.id, userId);
+  sendResponse_default(res, { statusCode: 200, success: true, message: "Resource deleted successfully", data: result });
 });
-var HardwareController = {
-  createHardware,
-  getAllHardware,
-  getSingleHardware,
-  updateHardware,
-  deleteHardware
+var ResourceController = {
+  createResource,
+  getAllResources,
+  getSingleResource,
+  updateResource,
+  deleteResource
 };
 
-// src/modules/hardware/hardware.validation.ts
+// src/modules/resource/resource.validation.ts
 var import_zod2 = require("zod");
-var createHardwareZodSchema = import_zod2.z.object({
-  name: import_zod2.z.string().nonempty({ message: "Hardware name is required" }),
-  category: import_zod2.z.string().nonempty({ message: "Category is required (e.g., GPU, Sensor)" }),
-  description: import_zod2.z.string().nonempty({ message: "Description is required" })
+var createResourceZodSchema = import_zod2.z.object({
+  name: import_zod2.z.string().nonempty({ message: "Resource name is required" }),
+  type: import_zod2.z.enum(["HARDWARE", "SOFTWARE"]).optional(),
+  description: import_zod2.z.string().nonempty({ message: "Description is required" }),
+  totalQuantity: import_zod2.z.coerce.number().optional()
 });
-var HardwareValidation = {
-  createHardwareZodSchema
+var ResourceValidation = {
+  createResourceZodSchema
 };
 
-// src/modules/hardware/hardware.route.ts
-var import_client4 = require("@prisma/client");
+// src/modules/resource/resource.route.ts
+var import_client5 = require("@prisma/client");
 var router3 = (0, import_express3.Router)();
 router3.post(
-  "/list-hardware",
-  checkAuth_default(import_client4.UserRole.SPONSOR),
-  validateRequest_default(HardwareValidation.createHardwareZodSchema),
-  HardwareController.createHardware
+  "/list-resource",
+  checkAuth_default(import_client5.UserRole.SPONSOR),
+  validateRequest_default(ResourceValidation.createResourceZodSchema),
+  ResourceController.createResource
 );
-router3.get("/", HardwareController.getAllHardware);
-router3.get("/:id", HardwareController.getSingleHardware);
+router3.get("/", ResourceController.getAllResources);
+router3.get("/:id", ResourceController.getSingleResource);
 router3.patch(
   "/:id",
   checkAuth_default("SPONSOR"),
-  HardwareController.updateHardware
+  ResourceController.updateResource
 );
 router3.delete(
   "/:id",
   checkAuth_default("SPONSOR", "ADMIN"),
-  // Admins can also delete inappropriate hardware listings
-  HardwareController.deleteHardware
+  // Admins can also delete inappropriate resource listings
+  ResourceController.deleteResource
 );
-var HardwareRoutes = router3;
+var ResourceRoutes = router3;
 
 // src/modules/donation/donation.route.ts
 var import_express4 = require("express");
@@ -1299,11 +1298,11 @@ var DonationValidation = {
 };
 
 // src/modules/donation/donation.route.ts
-var import_client5 = require("@prisma/client");
+var import_client6 = require("@prisma/client");
 var router4 = (0, import_express4.Router)();
 router4.post(
   "/create-donation",
-  checkAuth_default(import_client5.UserRole.SPONSOR),
+  checkAuth_default(import_client6.UserRole.SPONSOR),
   validateRequest_default(DonationValidation.createDonationZodSchema),
   DonationController.createDonation
 );
@@ -1342,20 +1341,20 @@ var getPlatformAnalytics = async () => {
     totalUsers,
     totalProjects,
     pendingProjects,
-    totalHardware,
+    totalResources,
     totalDonationsAggregation
   ] = await Promise.all([
     prisma_default.user.count(),
     prisma_default.project.count(),
     prisma_default.project.count({ where: { status: "PENDING" } }),
-    prisma_default.hardware.count(),
+    prisma_default.resource.count(),
     prisma_default.donation.aggregate({ _sum: { amount: true } })
   ]);
   return {
     totalUsers,
     totalProjects,
     pendingProjects,
-    totalHardware,
+    totalResources,
     totalFundsRaised: totalDonationsAggregation._sum.amount || 0
   };
 };
@@ -1400,9 +1399,9 @@ var AdminController = {
 
 // src/modules/admin/admin.validation.ts
 var import_zod4 = require("zod");
-var import_client6 = require("@prisma/client");
+var import_client7 = require("@prisma/client");
 var updateProjectStatusZodSchema = import_zod4.z.object({
-  status: import_zod4.z.nativeEnum(import_client6.ProjectStatus, {
+  status: import_zod4.z.nativeEnum(import_client7.ProjectStatus, {
     message: "Status is required"
   }),
   feedback: import_zod4.z.string().optional()
@@ -1444,8 +1443,8 @@ var moduleRoutes = [
     route: ProjectRoutes
   },
   {
-    path: "/hardware",
-    route: HardwareRoutes
+    path: "/resources",
+    route: ResourceRoutes
   },
   {
     path: "/donations",
@@ -1467,7 +1466,7 @@ var routes_default = router6;
 
 // src/middlewares/globalErrorHandler.ts
 var import_zod5 = require("zod");
-var import_client7 = require("@prisma/client");
+var import_client8 = require("@prisma/client");
 var globalErrorHandler = (err, req, res, next) => {
   let statusCode = err.statusCode || 500;
   let message = err.message || "Something went wrong!";
@@ -1489,7 +1488,7 @@ var globalErrorHandler = (err, req, res, next) => {
       path: issue.path[issue.path.length - 1],
       message: issue.message
     }));
-  } else if (err instanceof import_client7.Prisma.PrismaClientKnownRequestError) {
+  } else if (err instanceof import_client8.Prisma.PrismaClientKnownRequestError) {
     if (err.code === "P2002") {
       statusCode = 409;
       message = "Duplicate Entry";
@@ -1504,7 +1503,7 @@ var globalErrorHandler = (err, req, res, next) => {
       message = "Database Query Error";
       errorSources = [{ path: "", message: err.message }];
     }
-  } else if (err instanceof import_client7.Prisma.PrismaClientValidationError) {
+  } else if (err instanceof import_client8.Prisma.PrismaClientValidationError) {
     statusCode = 400;
     message = "Database Validation Error";
     errorSources = [{ path: "", message: "Invalid data provided for database query." }];

@@ -24,13 +24,13 @@ const getPlatformAnalytics = async () => {
         totalUsers,
         totalProjects,
         pendingProjects,
-        totalHardware,
+        totalResources,
         totalDonationsAggregation
     ] = await Promise.all([
         prisma.user.count(),
         prisma.project.count(),
         prisma.project.count({ where: { status: 'PENDING' } }),
-        prisma.hardware.count(),
+        prisma.resource.count(),
         prisma.donation.aggregate({ _sum: { amount: true } })
     ]);
 
@@ -38,7 +38,7 @@ const getPlatformAnalytics = async () => {
         totalUsers,
         totalProjects,
         pendingProjects,
-        totalHardware,
+        totalResources,
         totalFundsRaised: totalDonationsAggregation._sum.amount || 0,
     };
 };

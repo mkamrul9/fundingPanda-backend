@@ -3,19 +3,20 @@ import { UserController } from './user.controller';
 import validateRequest from '../../middlewares/validateRequest';
 import { UserValidation } from './user.validation';
 import checkAuth from '../../middlewares/checkAuth';
+import { UserRole } from '@prisma/client';
 
 const router = Router();
 
 
-router.get('/', UserController.getAllUsers);
+router.get('/', checkAuth(UserRole.ADMIN), UserController.getAllUsers);
 router.get(
     '/me',
-    checkAuth('STUDENT', 'SPONSOR', 'ADMIN'), // Anyone logged in can view their profile
+    checkAuth(UserRole.STUDENT, UserRole.SPONSOR, UserRole.ADMIN), // Anyone logged in can view their profile
     UserController.getMyProfile
 );
 router.patch(
     '/me',
-    checkAuth('STUDENT', 'SPONSOR', 'ADMIN'),
+    checkAuth(UserRole.STUDENT, UserRole.SPONSOR, UserRole.ADMIN),
     UserController.updateMyProfile
 );
 

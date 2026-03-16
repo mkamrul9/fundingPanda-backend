@@ -16,11 +16,28 @@ model Category {
   // Implicit Many-to-Many relations
   users       User[]    
   projects    Project[] 
+  resources   Resource[]
   
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
 
+model Resource {
+  id                String       @id @default(uuid())
+  name              String
+  type              ResourceType
+  description       String
+  totalQuantity     Int          @default(1) // 1 for Hardware, N for Software
+  availableQuantity Int          @default(1) 
+  
+  lenderId          String
+  lender            User         @relation(fields: [lenderId], references: [id])
+  
+  categories        Category[]   // Tag the resource with a research field
+  
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
 
 model User {
   id            String    @id @default(uuid())
@@ -42,9 +59,9 @@ model User {
 
   // Relations
   projects      Project[]
-  hardwares     Hardware[]
+  // hardwares     Hardware[]
   donations     Donation[]
-
+  resources     Resource[]
   @@map("users")
 }
 
@@ -113,19 +130,19 @@ model Project {
   @@map("projects")
 }
 
-model Hardware {
-  id            String   @id @default(uuid())
-  name          String
-  category      String   // e.g., GPU, Sensor, Microcontroller
-  description   String
-  isAvailable   Boolean  @default(true)
-  lenderId      String
-  lender        User     @relation(fields: [lenderId], references: [id])
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+// model Hardware {
+//   id            String   @id @default(uuid())
+//   name          String
+//   category      String   // e.g., GPU, Sensor, Microcontroller
+//   description   String
+//   isAvailable   Boolean  @default(true)
+//   lenderId      String
+//   lender        User     @relation(fields: [lenderId], references: [id])
+//   createdAt     DateTime @default(now())
+//   updatedAt     DateTime @updatedAt
 
-  @@map("hardwares")
-}
+//   @@map("hardwares")
+// }
 
 model Donation {
   id        String   @id @default(uuid())
@@ -150,4 +167,9 @@ enum ProjectStatus {
   APPROVED
   FUNDED
   COMPLETED
+}
+
+enum ResourceType {
+  HARDWARE
+  SOFTWARE
 }
