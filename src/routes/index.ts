@@ -5,6 +5,7 @@ import { ProjectRoutes } from '../modules/project/project.route';
 import { ResourceRoutes } from '../modules/resource/resource.route';
 import { DonationRoutes } from '../modules/donation/donation.route';
 import { AdminRoutes } from '../modules/admin/admin.route';
+import { CategoryRoutes } from '../modules/category/category.route';
 
 const router = Router();
 
@@ -29,6 +30,10 @@ const moduleRoutes = [
         path: '/admin',
         route: AdminRoutes
     },
+    {
+        path: '/categories',
+        route: CategoryRoutes
+    }
 ];
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route));

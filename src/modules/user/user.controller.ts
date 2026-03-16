@@ -6,7 +6,7 @@ import { UserService } from './user.service';
 
 
 const getAllUsers = catchAsync(async (req: Request, res: Response) => {
-    const result = await UserService.getAllUsersFromDB();
+    const result = await UserService.getAllUsersFromDB(req.query as Record<string, unknown>);
     sendResponse(res, {
         statusCode: 200,
         success: true,
@@ -29,9 +29,21 @@ const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, { statusCode: 200, success: true, message: 'Profile updated successfully', data: result });
 });
 
-export const UserController = {
+const getTopSponsors = catchAsync(async (req: Request, res: Response) => {
+    const result = await UserService.getTopSponsors();
+    sendResponse(res, { statusCode: 200, success: true, message: 'Top sponsors retrieved successfully', data: result });
+});
 
+const getSingleUser = catchAsync(async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    const result = await UserService.getSingleUserFromDB(id);
+    sendResponse(res, { statusCode: 200, success: true, message: 'User retrieved successfully', data: result });
+});
+
+export const UserController = {
     getAllUsers,
     getMyProfile,
-    updateMyProfile
+    updateMyProfile,
+    getTopSponsors,
+    getSingleUser,
 };

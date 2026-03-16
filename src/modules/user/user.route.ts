@@ -20,4 +20,10 @@ router.patch(
     UserController.updateMyProfile
 );
 
+// Public: list top sponsors
+router.get('/top-sponsors', UserController.getTopSponsors);
+
+// Public: get single user by id
+router.get('/:id', UserController.getSingleUser);
+
 export const UserRoutes = router;
