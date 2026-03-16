@@ -1023,8 +1023,25 @@ var ProjectRoutes = router2;
 var import_express3 = require("express");
 
 // src/modules/resource/resource.service.ts
+var import_client5 = require("@prisma/client");
 var createResourceIntoDB = async (payload) => {
-  return await prisma_default.resource.create({ data: payload });
+  const total = payload.totalQuantity !== void 0 ? Number(payload.totalQuantity) : 1;
+  const available = payload.availableQuantity !== void 0 ? Number(payload.availableQuantity) : total;
+  const typeValue = payload.type ? payload.type : import_client5.ResourceType.HARDWARE;
+  const data = {
+    name: payload.name,
+    description: payload.description,
+    type: typeValue,
+    totalQuantity: total,
+    availableQuantity: available,
+    lender: {
+      connect: { id: payload.lenderId }
+    },
+    categories: payload && payload.categories ? {
+      connect: payload.categories.map((c) => ({ id: c }))
+    } : void 0
+  };
+  return await prisma_default.resource.create({ data });
 };
 var getAllResourcesFromDB = async (query) => {
   const resourceQuery = new QueryBuilder(
@@ -1054,9 +1071,15 @@ var updateResourceInDB = async (id, userId, payload) => {
   if (resource.lenderId !== userId) {
     throw new AppError_default(403, "Forbidden: You can only edit your own resources");
   }
+  const updateData = {};
+  if (payload.name !== void 0) updateData.name = payload.name;
+  if (payload.type !== void 0) updateData.type = payload.type;
+  if (payload.description !== void 0) updateData.description = payload.description;
+  if (payload.totalQuantity !== void 0) updateData.totalQuantity = payload.totalQuantity;
+  if (payload.availableQuantity !== void 0) updateData.availableQuantity = payload.availableQuantity;
   return await prisma_default.resource.update({
     where: { id },
-    data: payload
+    data: updateData
   });
 };
 var deleteResourceFromDB = async (id, userId) => {
@@ -1065,7 +1088,9 @@ var deleteResourceFromDB = async (id, userId) => {
   if (resource.lenderId !== userId) {
     throw new AppError_default(403, "Forbidden: You can only delete your own resources");
   }
-  if (resource.availableQuantity < resource.totalQuantity) {
+  const available = resource.availableQuantity ?? 0;
+  const total = resource.totalQuantity ?? 0;
+  if (available < total) {
     throw new AppError_default(400, "Bad Request: Cannot delete a resource with active allocations");
   }
   return await prisma_default.resource.delete({ where: { id } });
@@ -1138,11 +1163,11 @@ var ResourceValidation = {
 };
 
 // src/modules/resource/resource.route.ts
-var import_client5 = require("@prisma/client");
+var import_client6 = require("@prisma/client");
 var router3 = (0, import_express3.Router)();
 router3.post(
   "/list-resource",
-  checkAuth_default(import_client5.UserRole.SPONSOR),
+  checkAuth_default(import_client6.UserRole.SPONSOR),
   validateRequest_default(ResourceValidation.createResourceZodSchema),
   ResourceController.createResource
 );
@@ -1298,11 +1323,11 @@ var DonationValidation = {
 };
 
 // src/modules/donation/donation.route.ts
-var import_client6 = require("@prisma/client");
+var import_client7 = require("@prisma/client");
 var router4 = (0, import_express4.Router)();
 router4.post(
   "/create-donation",
-  checkAuth_default(import_client6.UserRole.SPONSOR),
+  checkAuth_default(import_client7.UserRole.SPONSOR),
   validateRequest_default(DonationValidation.createDonationZodSchema),
   DonationController.createDonation
 );
@@ -1399,9 +1424,9 @@ var AdminController = {
 
 // src/modules/admin/admin.validation.ts
 var import_zod4 = require("zod");
-var import_client7 = require("@prisma/client");
+var import_client8 = require("@prisma/client");
 var updateProjectStatusZodSchema = import_zod4.z.object({
-  status: import_zod4.z.nativeEnum(import_client7.ProjectStatus, {
+  status: import_zod4.z.nativeEnum(import_client8.ProjectStatus, {
     message: "Status is required"
   }),
   feedback: import_zod4.z.string().optional()
@@ -1466,7 +1491,7 @@ var routes_default = router6;
 
 // src/middlewares/globalErrorHandler.ts
 var import_zod5 = require("zod");
-var import_client8 = require("@prisma/client");
+var import_client9 = require("@prisma/client");
 var globalErrorHandler = (err, req, res, next) => {
   let statusCode = err.statusCode || 500;
   let message = err.message || "Something went wrong!";
@@ -1488,7 +1513,7 @@ var globalErrorHandler = (err, req, res, next) => {
       path: issue.path[issue.path.length - 1],
       message: issue.message
     }));
-  } else if (err instanceof import_client8.Prisma.PrismaClientKnownRequestError) {
+  } else if (err instanceof import_client9.Prisma.PrismaClientKnownRequestError) {
     if (err.code === "P2002") {
       statusCode = 409;
       message = "Duplicate Entry";
@@ -1503,7 +1528,7 @@ var globalErrorHandler = (err, req, res, next) => {
       message = "Database Query Error";
       errorSources = [{ path: "", message: err.message }];
     }
-  } else if (err instanceof import_client8.Prisma.PrismaClientValidationError) {
+  } else if (err instanceof import_client9.Prisma.PrismaClientValidationError) {
     statusCode = 400;
     message = "Database Validation Error";
     errorSources = [{ path: "", message: "Invalid data provided for database query." }];
