@@ -5,6 +5,10 @@ import "dotenv/config";
 
 const connectionString = process.env.DATABASE_URL;
 
+if (!connectionString) {
+    throw new Error('DATABASE_URL environment variable is required');
+}
+
 // Initialize pg Pool
 const pool = new Pool({ connectionString });
 

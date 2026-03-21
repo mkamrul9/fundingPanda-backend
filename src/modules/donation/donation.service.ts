@@ -55,6 +55,11 @@ const getAllDonationsFromDB = async (query: Record<string, unknown>) => {
 };
 
 const createCheckoutSession = async (userId: string, payload: { amount: number, projectId: string }) => {
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl) {
+        throw new AppError(500, 'FRONTEND_URL environment variable is not configured');
+    }
+
     // 1. Verify project exists and is APPROVED
     const project = await prisma.project.findUnique({ where: { id: payload.projectId } });
 
@@ -67,8 +72,8 @@ const createCheckoutSession = async (userId: string, payload: { amount: number, 
     const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         mode: 'payment',
-        success_url: `${process.env.FRONTEND_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.FRONTEND_URL}/projects/${payload.projectId}`,
+        success_url: `${frontendUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${frontendUrl}/projects/${payload.projectId}`,
         customer_email: undefined, // we could fetch the user's email and put it here
         line_items: [
             {

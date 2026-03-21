@@ -5,7 +5,12 @@ import Stripe from 'stripe';
 
 const handleStripeWebhook = async (req: Request, res: Response) => {
     const sig = req.headers['stripe-signature'] as string;
-    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET as string;
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (!endpointSecret) {
+        console.error('Missing STRIPE_WEBHOOK_SECRET env var');
+        return res.status(500).json({ success: false, message: 'Webhook secret is not configured' });
+    }
 
     let event: Stripe.Event;
 

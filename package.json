@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "npx tsup src/server.ts --format cjs --clean",
-    "build:prod": "npx tsup src/server.ts --out-dir dist --format cjs --target node18 --clean --minify",
+    "build": "tsup src/server.ts --format cjs --clean",
+    "build:prod": "tsup src/server.ts --out-dir dist --format cjs --target node18 --clean --minify",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node dist/server.cjs",
     "start:prod": "node dist/server.cjs",
@@ -36,7 +36,10 @@
     "socket.io": "^4.8.3",
     "streamifier": "^0.1.1",
     "stripe": "^20.4.1",
+    "prisma": "^7.5.0",
+    "tsup": "^8.5.1",
     "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {
@@ -49,10 +52,7 @@
     "@types/pg": "^8.18.0",
     "@types/streamifier": "^0.1.2",
     "eslint": "^9.38.0",
-    "prisma": "^7.5.0",
     "ts-node": "^10.9.2",
-    "ts-node-dev": "^2.0.0",
-    "tsup": "^8.5.1",
-    "typescript": "^5.9.3"
+    "ts-node-dev": "^2.0.0"
   }
 }

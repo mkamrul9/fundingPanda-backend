@@ -28,7 +28,9 @@ const devTrustedOrigins = [
     'http://localhost:5000',
 ].filter((v): v is string => Boolean(v));
 
-console.log('BetterAuth allowedOrigins:', allowedOriginsList);
+if (process.env.DEBUG === 'true') {
+    console.log('BetterAuth allowedOrigins:', allowedOriginsList);
+}
 
 
 export const auth = betterAuth({
@@ -129,7 +131,7 @@ export const auth = betterAuth({
     ],
 
     advanced: {
-        useSecureCookies: false,
+        useSecureCookies: process.env.NODE_ENV === 'production',
         // In dev, relax origin and CSRF checks to unblock testing
         disableOriginCheck: process.env.NODE_ENV !== 'production',
         disableCSRFCheck: process.env.NODE_ENV !== 'production',

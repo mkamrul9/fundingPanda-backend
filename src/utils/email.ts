@@ -85,5 +85,6 @@ export const sendEmail = async (options: TEmailOptions) => {
         console.log(`Email sent successfully to ${options.to} [Message ID: ${info.messageId}]`);
     } catch (error) {
         console.error('Error sending email:', error);
+        throw error;
     }
 };

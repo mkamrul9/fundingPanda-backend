@@ -9,18 +9,26 @@ import { TMessage } from './message.interface';
 const getConversationHistory = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id as string;
     const otherUserId = req.params.otherUserId;
-    console.log(`API getConversationHistory: user=${userId} other=${otherUserId}`);
+    if (process.env.DEBUG === 'true') {
+        console.log(`API getConversationHistory: user=${userId} other=${otherUserId}`);
+    }
 
     const result = await MessageService.getConversationHistoryFromDB(userId, otherUserId as string);
-    console.log(`Chat history count: ${result?.length ?? 0}`);
+    if (process.env.DEBUG === 'true') {
+        console.log(`Chat history count: ${result?.length ?? 0}`);
+    }
     sendResponse(res, { statusCode: 200, success: true, message: 'Chat history retrieved', data: result });
 });
 
 const getConversations = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id as string;
-    console.log(`API getConversations: user=${userId}`);
+    if (process.env.DEBUG === 'true') {
+        console.log(`API getConversations: user=${userId}`);
+    }
     const result = await MessageService.getConversationsForUser(userId);
-    console.log(`Conversations count: ${result?.length ?? 0}`);
+    if (process.env.DEBUG === 'true') {
+        console.log(`Conversations count: ${result?.length ?? 0}`);
+    }
     sendResponse(res, { statusCode: 200, success: true, message: 'Conversations retrieved', data: result });
 });
 

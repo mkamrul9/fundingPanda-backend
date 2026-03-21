@@ -21,8 +21,10 @@ const initializeSocket = (io: Server) => {
 
             // Debug: show whether handshake contains cookie/header info we expect
             try {
-                console.log('Socket handshake headers keys:', Object.keys(socket.handshake.headers));
-                console.log('Socket cookie header present:', typeof socket.handshake.headers.cookie === 'string');
+                if (process.env.DEBUG === 'true') {
+                    console.log('Socket handshake headers keys:', Object.keys(socket.handshake.headers));
+                    console.log('Socket cookie header present:', typeof socket.handshake.headers.cookie === 'string');
+                }
             } catch (e) {
                 console.warn('Error reading handshake headers for debug', e);
             }
@@ -38,7 +40,9 @@ const initializeSocket = (io: Server) => {
                 role: session.user.role,
             };
 
-            console.log('Socket authenticated for user:', session.user.id);
+            if (process.env.DEBUG === 'true') {
+                console.log('Socket authenticated for user:', session.user.id);
+            }
 
             return next();
         } catch {
@@ -49,17 +53,23 @@ const initializeSocket = (io: Server) => {
     io.on('connection', (socket: Socket) => {
         const userId = socket.data.user?.id as string;
         socket.join(userId);
-        console.log(`A user connected: ${socket.id} (user: ${userId})`);
+        if (process.env.DEBUG === 'true') {
+            console.log(`A user connected: ${socket.id} (user: ${userId})`);
+        }
 
         // Keep event for frontend compatibility, but enforce authenticated room binding.
         socket.on('join_own_room', () => {
             socket.join(userId);
-            console.log(`User ${userId} joined their personal room.`);
+            if (process.env.DEBUG === 'true') {
+                console.log(`User ${userId} joined their personal room.`);
+            }
         });
 
         socket.on('send_message', async (data: TSendMessagePayload) => {
             try {
-                console.log(`send_message from ${userId} -> ${data?.receiverId}:`, { content: data?.content, imageUrl: data?.imageUrl });
+                if (process.env.DEBUG === 'true') {
+                    console.log(`send_message from ${userId} -> ${data?.receiverId}:`, { content: data?.content, imageUrl: data?.imageUrl });
+                }
 
                 if (!data?.receiverId) {
                     console.warn('send_message missing receiverId, ignoring.');
@@ -75,7 +85,9 @@ const initializeSocket = (io: Server) => {
                     },
                 });
 
-                console.log('Message saved to DB with id:', savedMessage.id);
+                if (process.env.DEBUG === 'true') {
+                    console.log('Message saved to DB with id:', savedMessage.id);
+                }
 
                 // Attach the client temporary id (if provided) so the client can reconcile optimistic messages
                 const emitted = Object.assign({}, savedMessage, { clientTempId: data.tempId ?? null });
@@ -89,7 +101,9 @@ const initializeSocket = (io: Server) => {
         });
 
         socket.on('disconnect', () => {
-            console.log(`User disconnected: ${socket.id}`);
+            if (process.env.DEBUG === 'true') {
+                console.log(`User disconnected: ${socket.id}`);
+            }
         });
     });
 };
