@@ -9,10 +9,15 @@ import { sendEmail } from "../utils/email";
 export const _frontend = process.env.FRONTEND_URL || 'http://localhost:3000';
 export const _betterAuth = process.env.BETTER_AUTH_URL || `http://localhost:${process.env.PORT || 5000}`;
 export const _normalize = (u?: string) => u ? u.replace(/\/+$/, '') : u;
+const _extraTrustedOrigins = (process.env.TRUSTED_ORIGINS || '')
+    .split(',')
+    .map((v) => _normalize(v.trim()))
+    .filter((v): v is string => Boolean(v));
 export const allowedOriginsList = Array.from(new Set([
     _normalize(_frontend),
     _normalize(_betterAuth),
     'https://funding-panda-frontend.vercel.app',
+    ..._extraTrustedOrigins,
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'http://localhost:5174',
@@ -82,7 +87,8 @@ export const auth = betterAuth({
                 });
             }
 
-            await sendEmail({
+            // Never block signup on email transport latency.
+            void sendEmail({
                 to: user.email,
                 subject: 'Verify your email for FundingPanda',
                 templateName: 'verification',
@@ -91,11 +97,15 @@ export const auth = betterAuth({
                     url: verificationUrl,
                     token,
                 },
-            });
-
-            if (process.env.DEBUG === 'true') {
-                console.log('Verification email dispatched successfully for', user.email);
-            }
+            })
+                .then(() => {
+                    if (process.env.DEBUG === 'true') {
+                        console.log('Verification email dispatched successfully for', user.email);
+                    }
+                })
+                .catch((error) => {
+                    console.error('Verification email dispatch failed:', error);
+                });
         },
         sendOnSignUp: true,
     },

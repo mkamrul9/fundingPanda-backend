@@ -7,22 +7,27 @@ type TEmailOptions = {
     templateData: Record<string, any>;
 };
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
-    secure: process.env.SMTP_PORT === '465', // true for 465, false for 587/25
-    family: 4,
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-    },
-    connectionTimeout: 30000,
-    greetingTimeout: 30000,
-    socketTimeout: 45000,
-    dnsTimeout: 30000,
-});
+const smtpConfigured = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS']
+    .every((key) => Boolean((process.env[key] || '').trim()));
 
-if (process.env.DEBUG === 'true') {
+const transporter = smtpConfigured
+    ? nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT),
+        secure: process.env.SMTP_PORT === '465', // true for 465, false for 587/25
+        family: 4,
+        auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+        },
+        connectionTimeout: 30000,
+        greetingTimeout: 30000,
+        socketTimeout: 45000,
+        dnsTimeout: 30000,
+    })
+    : null;
+
+if (process.env.DEBUG === 'true' && transporter) {
     transporter.verify((error, success) => {
         if (error) {
             console.error('SMTP transporter verification failed:', {
@@ -37,11 +42,51 @@ if (process.env.DEBUG === 'true') {
 }
 
 const validateSmtpConfig = () => {
+    if ((process.env.RESEND_API_KEY || '').trim()) {
+        return;
+    }
+
     const requiredVars = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS'];
     const missing = requiredVars.filter((key) => !(process.env[key] || '').trim());
 
     if (missing.length > 0) {
         throw new Error(`Missing SMTP configuration: ${missing.join(', ')}`);
+    }
+};
+
+const sendViaResend = async (options: TEmailOptions, html: string, from: string) => {
+    const apiKey = (process.env.RESEND_API_KEY || '').trim();
+    if (!apiKey) return false;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
+    try {
+        const response = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                from,
+                to: [options.to],
+                subject: options.subject,
+                html,
+            }),
+            signal: controller.signal,
+        });
+
+        if (!response.ok) {
+            const body = await response.text();
+            throw new Error(`Resend API error ${response.status}: ${body}`);
+        }
+
+        const payload = await response.json() as { id?: string };
+        console.log(`Email sent successfully to ${options.to} via Resend [Message ID: ${payload.id || 'n/a'}]`);
+        return true;
+    } finally {
+        clearTimeout(timeout);
     }
 };
 
@@ -143,6 +188,7 @@ export const sendEmail = async (options: TEmailOptions) => {
             templateName: options.templateName,
             to: options.to,
             from: primaryFrom,
+            provider: (process.env.RESEND_API_KEY || '').trim() ? 'resend+smtp-fallback' : 'smtp',
             smtpHost: process.env.SMTP_HOST,
             smtpPort: process.env.SMTP_PORT,
         });
@@ -150,11 +196,20 @@ export const sendEmail = async (options: TEmailOptions) => {
 
     // 3. Send the email
     try {
+        const sentViaResend = await sendViaResend(options, htmlContent, primaryFrom);
+        if (sentViaResend) {
+            return;
+        }
+
+        if (!transporter) {
+            throw new Error('SMTP transport is not configured. Set SMTP_* vars or RESEND_API_KEY.');
+        }
+
         const info = await transporter.sendMail(mailOptions);
         console.log(`Email sent successfully to ${options.to} [Message ID: ${info.messageId}]`);
     } catch (error) {
         // Retry once with authenticated mailbox if primary sender fails.
-        if (fallbackFrom && fallbackFrom !== primaryFrom) {
+        if (transporter && fallbackFrom && fallbackFrom !== primaryFrom) {
             try {
                 const retryInfo = await transporter.sendMail({
                     ...mailOptions,
@@ -182,6 +237,7 @@ export const sendEmail = async (options: TEmailOptions) => {
             responseCode: err?.responseCode,
             command: err?.command,
             response: err?.response,
+            hint: 'If this is ETIMEDOUT/ENETUNREACH on smtp.gmail.com, configure RESEND_API_KEY to use HTTPS email delivery from Render.',
         });
         throw error;
     }

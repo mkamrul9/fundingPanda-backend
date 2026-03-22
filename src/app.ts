@@ -90,16 +90,24 @@ app.use('/api/auth', (req, _res, next) => {
         console.log('Normalized incoming origin:', normalizedIncoming);
         console.log('Origin matches allowed list:', normalizedIncoming ? allowedOriginsList.includes(normalizedIncoming) : false);
     }
-    // In development, if the incoming origin doesn't match our allowed list,
-    // override it to the BetterAuth base URL so origin checks succeed.
-    if (process.env.NODE_ENV !== 'production') {
-        const normalizedIncoming = _normalize(incomingOrigin) ?? '';
-        if (normalizedIncoming && !allowedOriginsList.includes(normalizedIncoming)) {
-            if (process.env.DEBUG === 'true') {
-                console.log('Overriding incoming origin for BetterAuth to:', betterAuthBaseURL);
-            }
-            headersTyped.origin = betterAuthBaseURL;
+    // In development, if origin is unknown, override to backend base URL.
+    // In production, allow Vercel preview origins by normalizing to configured frontend origin.
+    const normalizedIncomingForRewrite = _normalize(incomingOrigin) ?? '';
+    const isUnknownOrigin = normalizedIncomingForRewrite && !allowedOriginsList.includes(normalizedIncomingForRewrite);
+
+    if (process.env.NODE_ENV !== 'production' && isUnknownOrigin) {
+        if (process.env.DEBUG === 'true') {
+            console.log('Overriding incoming origin for BetterAuth to:', betterAuthBaseURL);
         }
+        headersTyped.origin = betterAuthBaseURL;
+    }
+
+    if (process.env.NODE_ENV === 'production' && isUnknownOrigin && normalizedIncomingForRewrite.endsWith('.vercel.app')) {
+        const normalizedFrontend = _normalize(process.env.FRONTEND_URL) || 'https://funding-panda-frontend.vercel.app';
+        if (process.env.DEBUG === 'true') {
+            console.log('Normalizing Vercel preview origin for BetterAuth to:', normalizedFrontend);
+        }
+        headersTyped.origin = normalizedFrontend;
     }
 
     next();

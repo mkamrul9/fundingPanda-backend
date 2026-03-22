@@ -68,6 +68,11 @@ DATABASE_URL=postgresql://user:password@localhost:5432/fundingpanda?schema=publi
 # BetterAuth
 BETTER_AUTH_SECRET=replace-with-random-secret
 BETTER_AUTH_URL=http://localhost:5000
+TRUSTED_ORIGINS=https://funding-panda-frontend.vercel.app,https://your-preview.vercel.app
+
+# Email (recommended for Render production)
+RESEND_API_KEY=re_xxx
+FROM_EMAIL=FundingPanda <onboarding@resend.dev>
 
 # Admin seed (used by the seeder)
 ADMIN_EMAIL=admin@fundingpanda.com
