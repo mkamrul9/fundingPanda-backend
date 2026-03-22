@@ -7,6 +7,8 @@ type TEmailOptions = {
     templateData: Record<string, any>;
 };
 
+const emailProvider = (process.env.RESEND_API_KEY || '').trim() ? 'resend' : 'smtp';
+
 const smtpConfigured = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS']
     .every((key) => Boolean((process.env[key] || '').trim()));
 
@@ -27,7 +29,7 @@ const transporter = smtpConfigured
     })
     : null;
 
-if (process.env.DEBUG === 'true' && transporter) {
+if (process.env.DEBUG === 'true' && transporter && emailProvider === 'smtp') {
     transporter.verify((error, success) => {
         if (error) {
             console.error('SMTP transporter verification failed:', {
@@ -39,6 +41,14 @@ if (process.env.DEBUG === 'true' && transporter) {
 
         console.log('SMTP transporter is ready to send mail:', success);
     });
+}
+
+if (process.env.NODE_ENV === 'production' && process.env.DEBUG === 'true') {
+    console.log('Email provider in use:', emailProvider);
+
+    if (emailProvider === 'smtp' && (process.env.SMTP_HOST || '').toLowerCase().includes('gmail.com')) {
+        console.warn('Production is using Gmail SMTP. If you see ENETUNREACH/ETIMEDOUT from Render, set RESEND_API_KEY to send via HTTPS API.');
+    }
 }
 
 const validateSmtpConfig = () => {
@@ -188,7 +198,7 @@ export const sendEmail = async (options: TEmailOptions) => {
             templateName: options.templateName,
             to: options.to,
             from: primaryFrom,
-            provider: (process.env.RESEND_API_KEY || '').trim() ? 'resend+smtp-fallback' : 'smtp',
+            provider: emailProvider === 'resend' ? 'resend+smtp-fallback' : 'smtp',
             smtpHost: process.env.SMTP_HOST,
             smtpPort: process.env.SMTP_PORT,
         });
