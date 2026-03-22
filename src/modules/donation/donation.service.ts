@@ -118,9 +118,65 @@ const createCheckoutSession = async (userId: string, payload: { amount: number, 
     return { paymentUrl: session.url };
 };
 
+const confirmDonationFromCheckoutSession = async (userId: string, sessionId: string) => {
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    if (!session || session.payment_status !== 'paid') {
+        throw new AppError(400, 'Payment is not completed for this session');
+    }
+
+    const projectId = session.metadata?.projectId;
+    const metadataUserId = session.metadata?.userId;
+    const amountInCents = session.amount_total;
+
+    if (!projectId || !metadataUserId || !amountInCents) {
+        throw new AppError(400, 'Payment session metadata is incomplete');
+    }
+
+    if (metadataUserId !== userId) {
+        throw new AppError(403, 'You are not allowed to confirm this payment session');
+    }
+
+    const amount = amountInCents / 100;
+    const dedupeWindowStart = new Date(Date.now() - 1000 * 60 * 60 * 2);
+
+    const existingDonation = await prisma.donation.findFirst({
+        where: {
+            userId,
+            projectId,
+            amount,
+            createdAt: {
+                gte: dedupeWindowStart,
+            },
+        },
+        orderBy: {
+            createdAt: 'desc',
+        },
+    });
+
+    if (existingDonation) {
+        return {
+            donation: existingDonation,
+            alreadyRecorded: true,
+        };
+    }
+
+    const donation = await createDonationIntoDB({
+        userId,
+        projectId,
+        amount,
+    });
+
+    return {
+        donation,
+        alreadyRecorded: false,
+    };
+};
+
 export const DonationService = {
     createDonationIntoDB,
     getAllDonationsFromDB,
     getMyDonationsFromDB,
-    createCheckoutSession
+    createCheckoutSession,
+    confirmDonationFromCheckoutSession,
 };

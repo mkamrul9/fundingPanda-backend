@@ -58,9 +58,25 @@ const initiatePayment = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const confirmPaymentSession = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user?.id as string;
+    const { sessionId } = req.body;
+    const result = await DonationService.confirmDonationFromCheckoutSession(userId, sessionId);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: result.alreadyRecorded
+            ? 'Donation was already recorded'
+            : 'Donation recorded successfully from payment session',
+        data: result,
+    });
+});
+
 export const DonationController = {
     createDonation,
     getAllDonations,
     getMyDonations,
     initiatePayment,
+    confirmPaymentSession,
 };

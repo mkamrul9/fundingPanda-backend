@@ -21,6 +21,12 @@ router.post(
     validateRequest(DonationValidation.createDonationZodSchema),
     DonationController.initiatePayment
 );
+router.post(
+    '/confirm-session',
+    checkAuth(UserRole.SPONSOR),
+    validateRequest(DonationValidation.confirmDonationSessionZodSchema),
+    DonationController.confirmPaymentSession
+);
 
 
 export const DonationRoutes = router;

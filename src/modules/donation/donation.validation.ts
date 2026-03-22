@@ -7,6 +7,13 @@ const createDonationZodSchema = z.object({
     }),
 });
 
+const confirmDonationSessionZodSchema = z.object({
+    body: z.object({
+        sessionId: z.string().min(1, { message: 'Stripe session id is required' }),
+    }),
+});
+
 export const DonationValidation = {
     createDonationZodSchema,
+    confirmDonationSessionZodSchema,
 };

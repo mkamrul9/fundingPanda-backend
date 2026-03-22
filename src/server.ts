@@ -8,19 +8,24 @@ let server: HttpServer;
 const PORT = Number(process.env.PORT || 5000);
 const frontendUrl = process.env.FRONTEND_URL;
 
+const normalizeOrigin = (origin?: string) => (origin || '').replace(/\/+$/, '').trim().toLowerCase();
+
 if (process.env.NODE_ENV === 'production' && !frontendUrl) {
     throw new Error('FRONTEND_URL is required in production');
 }
 
 const socketAllowedOrigins = [
     frontendUrl,
+    'https://funding-panda-frontend.vercel.app',
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'http://localhost:5174',
     'http://127.0.0.1:5174',
-].filter((value): value is string => Boolean(value));
+]
+    .filter((value): value is string => Boolean(value))
+    .map((value) => normalizeOrigin(value));
 
 async function main() {
     try {
@@ -32,7 +37,21 @@ async function main() {
         // Initialize Socket.io and attach it to the server
         const io = new SocketIOServer(server, {
             cors: {
-                origin: socketAllowedOrigins,
+                origin: (origin, callback) => {
+                    if (!origin) return callback(null, true);
+
+                    const normalized = normalizeOrigin(origin);
+                    if (socketAllowedOrigins.includes(normalized)) {
+                        return callback(null, true);
+                    }
+
+                    // Allow Vercel preview deployments.
+                    if (normalized.endsWith('.vercel.app')) {
+                        return callback(null, true);
+                    }
+
+                    return callback(new Error(`Socket CORS blocked for origin: ${origin}`));
+                },
                 methods: ['GET', 'POST'],
                 credentials: true,
             },
