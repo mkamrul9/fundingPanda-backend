@@ -154,6 +154,23 @@ export const auth = betterAuth({
         disableOriginCheck: process.env.NODE_ENV !== 'production',
         disableCSRFCheck: process.env.NODE_ENV !== 'production',
     },
+    // Ensure browser accepts auth cookies for cross-site requests (Vercel -> Render).
+    defaultCookieAttributes: {
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        path: '/',
+        httpOnly: true,
+    },
+    cookies: {
+        sessionToken: {
+            attributes: {
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                path: '/',
+                httpOnly: true,
+            },
+        },
+    },
     // BetterAuth uses `trustedOrigins` for origin validation
     trustedOrigins: process.env.NODE_ENV !== 'production'
         ? devTrustedOrigins
