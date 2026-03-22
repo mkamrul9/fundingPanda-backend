@@ -34,6 +34,18 @@ const getAllDonations = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getMyDonations = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user?.id as string;
+    const result = await DonationService.getMyDonationsFromDB(userId);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: 'My donations retrieved successfully',
+        data: result,
+    });
+});
+
 const initiatePayment = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id as string;
     const result = await DonationService.createCheckoutSession(userId, req.body);
@@ -49,5 +61,6 @@ const initiatePayment = catchAsync(async (req: Request, res: Response) => {
 export const DonationController = {
     createDonation,
     getAllDonations,
+    getMyDonations,
     initiatePayment,
 };

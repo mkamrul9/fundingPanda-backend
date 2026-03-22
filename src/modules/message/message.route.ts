@@ -14,6 +14,8 @@ router.get('/conversations', checkAuth('STUDENT', 'SPONSOR', 'ADMIN'), MessageCo
 // Get past messages between the logged-in user and another user
 router.get('/:otherUserId', checkAuth('STUDENT', 'SPONSOR', 'ADMIN'), MessageController.getConversationHistory);
 
+router.post('/', checkAuth('STUDENT', 'SPONSOR', 'ADMIN'), MessageController.sendTextMessage);
+
 // Send an image in the chat
 router.post(
     '/upload-image',

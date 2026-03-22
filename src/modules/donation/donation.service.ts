@@ -54,6 +54,26 @@ const getAllDonationsFromDB = async (query: Record<string, unknown>) => {
     return await donationQuery.execute();
 };
 
+const getMyDonationsFromDB = async (userId: string) => {
+    return await prisma.donation.findMany({
+        where: { userId },
+        include: {
+            project: {
+                select: {
+                    id: true,
+                    title: true,
+                    status: true,
+                    raisedAmount: true,
+                    goalAmount: true,
+                },
+            },
+        },
+        orderBy: {
+            createdAt: 'desc',
+        },
+    });
+};
+
 const createCheckoutSession = async (userId: string, payload: { amount: number, projectId: string }) => {
     const frontendUrl = process.env.FRONTEND_URL;
     if (!frontendUrl) {
@@ -100,5 +120,6 @@ const createCheckoutSession = async (userId: string, payload: { amount: number, 
 export const DonationService = {
     createDonationIntoDB,
     getAllDonationsFromDB,
+    getMyDonationsFromDB,
     createCheckoutSession
 };

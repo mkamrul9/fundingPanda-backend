@@ -5,7 +5,7 @@ import Stripe from 'stripe';
 
 const handleStripeWebhook = async (req: Request, res: Response) => {
     const sig = req.headers['stripe-signature'] as string;
-    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET || process.env['STRIPE_WEBHOOK_SECRET '];
 
     if (!endpointSecret) {
         console.error('Missing STRIPE_WEBHOOK_SECRET env var');

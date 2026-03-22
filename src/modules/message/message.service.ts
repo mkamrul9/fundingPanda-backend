@@ -10,6 +10,20 @@ const getConversationHistoryFromDB = async (userId: string, otherUserId: string)
                 { senderId: otherUserId, receiverId: userId },
             ],
         },
+        include: {
+            sender: {
+                select: {
+                    id: true,
+                    name: true,
+                },
+            },
+            receiver: {
+                select: {
+                    id: true,
+                    name: true,
+                },
+            },
+        },
         orderBy: { createdAt: 'asc' }, // Oldest first, so the chat reads top-to-bottom
     });
 };
@@ -23,6 +37,31 @@ const uploadChatImageInDB = async (message: TMessage) => {
             receiverId: message.receiverId,
             content: message.content ?? null,
             imageUrl: message.imageUrl ?? null,
+        },
+    });
+};
+
+const createTextMessageInDB = async (message: TMessage) => {
+    return await prisma.message.create({
+        data: {
+            senderId: message.senderId,
+            receiverId: message.receiverId,
+            content: message.content?.trim() || null,
+            imageUrl: null,
+        },
+        include: {
+            sender: {
+                select: {
+                    id: true,
+                    name: true,
+                },
+            },
+            receiver: {
+                select: {
+                    id: true,
+                    name: true,
+                },
+            },
         },
     });
 };
@@ -56,4 +95,4 @@ const getConversationsForUser = async (userId: string) => {
     return Array.from(map.values());
 };
 
-export const MessageService = { getConversationHistoryFromDB, uploadChatImageInDB, getConversationsForUser };
+export const MessageService = { getConversationHistoryFromDB, uploadChatImageInDB, createTextMessageInDB, getConversationsForUser };

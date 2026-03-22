@@ -14,6 +14,7 @@ router.post(
     DonationController.createDonation
 );
 router.get('/', DonationController.getAllDonations);
+router.get('/me', checkAuth(UserRole.SPONSOR), DonationController.getMyDonations);
 router.post(
     '/initiate-payment',
     checkAuth('SPONSOR'),

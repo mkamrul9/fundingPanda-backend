@@ -51,4 +51,26 @@ const uploadChatImage = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, { statusCode: 201, success: true, message: 'Image sent in chat', data: result });
 });
 
-export const MessageController = { getConversationHistory, uploadChatImage, getConversations };
+const sendTextMessage = catchAsync(async (req: Request, res: Response) => {
+    const senderId = req.user?.id as string;
+    const body = req.body as TMessage;
+
+    if (!body.receiverId) {
+        throw new AppError(400, 'Receiver ID is required');
+    }
+
+    if (!body.content?.trim()) {
+        throw new AppError(400, 'Message content is required');
+    }
+
+    const msg: TMessage = {
+        senderId,
+        receiverId: body.receiverId,
+        content: body.content,
+    };
+
+    const result = await MessageService.createTextMessageInDB(msg);
+    sendResponse(res, { statusCode: 201, success: true, message: 'Message sent', data: result });
+});
+
+export const MessageController = { getConversationHistory, uploadChatImage, sendTextMessage, getConversations };
