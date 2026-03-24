@@ -7,8 +7,9 @@ type TEmailOptions = {
     templateData: Record<string, any>;
 };
 
+const hasBrevoApiKey = Boolean((process.env.BREVO_API_KEY || '').trim());
 const hasResendApiKey = Boolean((process.env.RESEND_API_KEY || '').trim());
-const emailProvider = hasResendApiKey ? 'resend' : 'smtp';
+const emailProvider = hasBrevoApiKey ? 'brevo' : (hasResendApiKey ? 'resend' : 'smtp');
 
 const smtpConfigured = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS']
     .every((key) => Boolean((process.env[key] || '').trim()));
@@ -47,17 +48,21 @@ if (process.env.DEBUG === 'true' && transporter && emailProvider === 'smtp') {
 if (process.env.NODE_ENV === 'production' && process.env.DEBUG === 'true') {
     console.log('Email provider in use:', emailProvider);
 
+    if (emailProvider === 'brevo') {
+        console.log('Brevo delivery is enabled for production email.');
+    }
+
     if (emailProvider === 'resend') {
         console.log('Resend delivery is enabled for production email.');
     }
 
     if (emailProvider === 'smtp' && (process.env.SMTP_HOST || '').toLowerCase().includes('gmail.com')) {
-        console.warn('Production is using Gmail SMTP. If you see ENETUNREACH/ETIMEDOUT from Render, set RESEND_API_KEY to send via HTTPS API.');
+        console.warn('Production is using Gmail SMTP. If you see ENETUNREACH/ETIMEDOUT from Render, set BREVO_API_KEY (recommended) or RESEND_API_KEY to send via HTTPS API.');
     }
 }
 
 const validateSmtpConfig = () => {
-    if (hasResendApiKey) {
+    if (hasBrevoApiKey || hasResendApiKey) {
         return;
     }
 
@@ -66,6 +71,50 @@ const validateSmtpConfig = () => {
 
     if (missing.length > 0) {
         throw new Error(`Missing SMTP configuration: ${missing.join(', ')}`);
+    }
+};
+
+const sendViaBrevo = async (options: TEmailOptions, html: string, from: string) => {
+    const apiKey = (process.env.BREVO_API_KEY || '').trim();
+    if (!apiKey) return false;
+
+    const senderEmail = (process.env.BREVO_SENDER_EMAIL || '').trim();
+    const senderName = (process.env.BREVO_SENDER_NAME || 'FundingPanda Security').trim();
+    const fromEmailMatch = from.match(/<([^>]+)>/);
+    const fallbackEmailFromFromHeader = fromEmailMatch?.[1]?.trim();
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
+    try {
+        const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST',
+            headers: {
+                'api-key': apiKey,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                sender: {
+                    email: senderEmail || fallbackEmailFromFromHeader || 'noreply@fundingpanda.com',
+                    name: senderName,
+                },
+                to: [{ email: options.to }],
+                subject: options.subject,
+                htmlContent: html,
+            }),
+            signal: controller.signal,
+        });
+
+        if (!response.ok) {
+            const body = await response.text();
+            throw new Error(`Brevo API error ${response.status}: ${body}`);
+        }
+
+        const payload = await response.json() as { messageId?: string };
+        console.log(`Email sent successfully to ${options.to} via Brevo [Message ID: ${payload.messageId || 'n/a'}]`);
+        return true;
+    } finally {
+        clearTimeout(timeout);
     }
 };
 
@@ -109,6 +158,14 @@ const resolveFromAddress = () => {
     const smtpUser = (process.env.SMTP_USER || '').trim();
     const rawFrom = (process.env.FROM_EMAIL || process.env.FROM_EMAIL2 || '').trim();
     const smtpHost = (process.env.SMTP_HOST || '').toLowerCase();
+
+    if (hasBrevoApiKey) {
+        const brevoSenderEmail = (process.env.BREVO_SENDER_EMAIL || '').trim();
+        const brevoSenderName = (process.env.BREVO_SENDER_NAME || 'FundingPanda Security').trim();
+        if (brevoSenderEmail) {
+            return `"${brevoSenderName}" <${brevoSenderEmail}>`;
+        }
+    }
 
     if (hasResendApiKey) {
         return rawFrom || 'onboarding@resend.dev';
@@ -207,7 +264,7 @@ export const sendEmail = async (options: TEmailOptions) => {
             templateName: options.templateName,
             to: options.to,
             from: primaryFrom,
-            provider: emailProvider === 'resend' ? 'resend+smtp-fallback' : 'smtp',
+            provider: emailProvider,
             smtpHost: process.env.SMTP_HOST,
             smtpPort: process.env.SMTP_PORT,
         });
@@ -215,24 +272,29 @@ export const sendEmail = async (options: TEmailOptions) => {
 
     // 3. Send the email
     try {
+        const sentViaBrevo = await sendViaBrevo(options, htmlContent, primaryFrom);
+        if (sentViaBrevo) {
+            return;
+        }
+
         const sentViaResend = await sendViaResend(options, htmlContent, primaryFrom);
         if (sentViaResend) {
             return;
         }
 
-        if (hasResendApiKey && process.env.NODE_ENV === 'production') {
-            throw new Error('Resend is configured but sending failed. SMTP fallback is disabled in production.');
+        if ((hasBrevoApiKey || hasResendApiKey) && process.env.NODE_ENV === 'production') {
+            throw new Error(`${emailProvider} is configured but sending failed. SMTP fallback is disabled in production.`);
         }
 
         if (!transporter) {
-            throw new Error('SMTP transport is not configured. Set SMTP_* vars or RESEND_API_KEY.');
+            throw new Error('SMTP transport is not configured. Set SMTP_* vars, BREVO_API_KEY, or RESEND_API_KEY.');
         }
 
         const info = await transporter.sendMail(mailOptions);
         console.log(`Email sent successfully to ${options.to} [Message ID: ${info.messageId}]`);
     } catch (error) {
         // Retry once with authenticated mailbox if primary sender fails.
-        if (!hasResendApiKey && transporter && fallbackFrom && fallbackFrom !== primaryFrom) {
+        if (!hasBrevoApiKey && !hasResendApiKey && transporter && fallbackFrom && fallbackFrom !== primaryFrom) {
             try {
                 const retryInfo = await transporter.sendMail({
                     ...mailOptions,
@@ -260,7 +322,7 @@ export const sendEmail = async (options: TEmailOptions) => {
             responseCode: err?.responseCode,
             command: err?.command,
             response: err?.response,
-            hint: 'If this is ETIMEDOUT/ENETUNREACH on smtp.gmail.com, configure RESEND_API_KEY to use HTTPS email delivery from Render.',
+            hint: 'If this is ETIMEDOUT/ENETUNREACH on smtp.gmail.com, configure BREVO_API_KEY (recommended) or RESEND_API_KEY to use HTTPS email delivery from Render.',
         });
         throw error;
     }

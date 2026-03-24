@@ -70,9 +70,14 @@ BETTER_AUTH_SECRET=replace-with-random-secret
 BETTER_AUTH_URL=http://localhost:5000
 TRUSTED_ORIGINS=https://funding-panda-frontend.vercel.app,https://your-preview.vercel.app
 
-# Email (recommended for Render production)
-RESEND_API_KEY=re_xxx
-FROM_EMAIL=FundingPanda <onboarding@resend.dev>
+# Email (recommended for Render production: Brevo API)
+BREVO_API_KEY=xkeysib_xxx
+BREVO_SENDER_EMAIL=youremail@example.com
+BREVO_SENDER_NAME=FundingPanda Security
+
+# Optional alternatives
+# RESEND_API_KEY=re_xxx
+# FROM_EMAIL=FundingPanda <onboarding@resend.dev>
 
 # Admin seed (used by the seeder)
 ADMIN_EMAIL=admin@fundingpanda.com
