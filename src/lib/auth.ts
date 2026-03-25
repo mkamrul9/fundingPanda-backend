@@ -50,13 +50,16 @@ export const auth = betterAuth({
         enabled: true,
         requireEmailVerification: true,
         async sendResetPassword(data, request) {
-            await sendEmail({
+            // Avoid blocking API response on email transport latency/failure.
+            void sendEmail({
                 to: data.user.email,
                 subject: "Reset your FundingPanda Password",
                 templateName: "reset-password",
                 templateData: {
                     url: data.url, // BetterAuth generates this secure, single-use URL automatically!
                 },
+            }).catch((error) => {
+                console.error('Reset password email dispatch failed:', error);
             });
         },
     },
@@ -70,8 +73,11 @@ export const auth = betterAuth({
 
             try {
                 const parsed = new URL(url);
-                if (!parsed.searchParams.get('callbackURL')) {
+                const existingCallbackUrl = parsed.searchParams.get('callbackURL');
+                if (!existingCallbackUrl) {
                     parsed.searchParams.set('callbackURL', loginCallbackUrl);
+                } else if (existingCallbackUrl.startsWith('/')) {
+                    parsed.searchParams.set('callbackURL', `${_normalize(_frontend) || 'http://localhost:3000'}${existingCallbackUrl}`);
                 }
                 verificationUrl = parsed.toString();
             } catch {
