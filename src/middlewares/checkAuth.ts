@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { auth } from '../lib/auth';
 import catchAsync from '../shared/catchAsync';
+import prisma from '../lib/prisma';
 
 const checkAuth = (...requiredRoles: string[]) => {
     return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
@@ -22,6 +23,18 @@ const checkAuth = (...requiredRoles: string[]) => {
             return res.status(401).json({
                 success: false,
                 message: 'You are not authorized to access this route.',
+            });
+        }
+
+        const dbUser = await prisma.user.findUnique({
+            where: { id: session.user.id as string },
+            select: { isBanned: true },
+        });
+
+        if (dbUser?.isBanned) {
+            return res.status(403).json({
+                success: false,
+                message: 'Your account has been banned. Please contact support.',
             });
         }
 

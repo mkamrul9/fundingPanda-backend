@@ -25,7 +25,14 @@ const verifyUserZodSchema = z.object({
     }),
 });
 
+const toggleUserBanZodSchema = z.object({
+    body: z.object({
+        isBanned: z.boolean({ message: 'isBanned boolean is required' }),
+    }),
+});
+
 export const AdminValidation = {
     updateProjectStatusZodSchema,
     verifyUserZodSchema,
+    toggleUserBanZodSchema,
 };

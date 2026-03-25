@@ -8,6 +8,7 @@ import { toNodeHandler } from 'better-auth/node';
 import { auth, allowedOriginsList, _normalize } from './lib/auth';
 import 'dotenv/config';
 import { DonationWebhook } from './modules/donation/donation.webhook';
+import prisma from './lib/prisma';
 
 
 const app: Application = express();
@@ -69,8 +70,36 @@ app.options(/.*/, cors(corsOptions));
 
 // BetterAuth Core Route 
 const betterAuthBaseURL = process.env.BETTER_AUTH_URL || `http://localhost:${process.env.PORT || 5000}`;
-app.use('/api/auth', (req, _res, next) => {
+app.use('/api/auth', async (req, res, next) => {
     const headersTyped = req.headers as Record<string, string | string[] | undefined>;
+    try {
+        if (req.method === 'POST' && req.path === '/sign-in/email') {
+            const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+
+            if (email) {
+                const user = await prisma.user.findFirst({
+                    where: {
+                        email: {
+                            equals: email,
+                            mode: 'insensitive',
+                        },
+                    },
+                    select: {
+                        isBanned: true,
+                    },
+                });
+
+                if (user?.isBanned) {
+                    return res.status(403).json({
+                        success: false,
+                        message: 'Your account has been banned. Please contact support.',
+                    });
+                }
+            }
+        }
+    } catch (error) {
+        return next(error);
+    }
 
     if (process.env.DEBUG === 'true') {
         console.log('BetterAuth request headers:', {

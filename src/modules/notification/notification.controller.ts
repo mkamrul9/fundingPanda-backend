@@ -19,7 +19,8 @@ const getMyNotifications = catchAsync(async (req: Request, res: Response) => {
 
 const markAllNotificationsRead = catchAsync(async (req: Request, res: Response) => {
     const userId = req.user?.id as string;
-    const markedCount = await NotificationService.markAllMessageNotificationsReadInDB(userId);
+    const role = req.user?.role as string;
+    const markedCount = await NotificationService.markAllNotificationsReadInDB(userId, role);
 
     sendResponse(res, {
         statusCode: 200,

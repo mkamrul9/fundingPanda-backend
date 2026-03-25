@@ -6,3 +6,7 @@ export type TUpdateProjectStatus = {
 export type TVerifyUser = {
     isVerified: boolean;
 };
+
+export type TToggleUserBan = {
+    isBanned: boolean;
+};

@@ -20,7 +20,7 @@ export type TNotificationItem = {
 };
 
 const getMyNotificationsFromDB = async (userId: string, role: string) => {
-    const [receivedMessages, donationEvents, myProjects, sponsorMilestones, pendingProjects] = await Promise.all([
+    const [receivedMessages, donationEvents, myProjects, sponsorMilestones, pendingProjects, readRecords] = await Promise.all([
         prisma.message.findMany({
             where: { receiverId: userId },
             include: {
@@ -86,7 +86,13 @@ const getMyNotificationsFromDB = async (userId: string, role: string) => {
                 take: 30,
             })
             : Promise.resolve([]),
+        prisma.notificationRead.findMany({
+            where: { userId },
+            select: { notificationId: true },
+        }),
     ]);
+
+    const readNotificationIds = new Set(readRecords.map((record) => record.notificationId));
 
     const notifications: TNotificationItem[] = [];
 
@@ -118,7 +124,7 @@ const getMyNotificationsFromDB = async (userId: string, role: string) => {
             description,
             createdAt: donation.createdAt,
             link: `/projects/${donation.project.id}`,
-            isUnread: true,
+            isUnread: !readNotificationIds.has(`donation-${donation.id}`),
         });
     }
 
@@ -131,7 +137,7 @@ const getMyNotificationsFromDB = async (userId: string, role: string) => {
                 description: project.title,
                 createdAt: project.updatedAt,
                 link: `/projects/${project.id}`,
-                isUnread: true,
+                isUnread: !readNotificationIds.has(`project-status-approved-${project.id}`),
             });
         }
 
@@ -143,7 +149,7 @@ const getMyNotificationsFromDB = async (userId: string, role: string) => {
                 description: `${project.title}: ${project.adminFeedback}`,
                 createdAt: project.updatedAt,
                 link: `/dashboard/my-projects`,
-                isUnread: true,
+                isUnread: !readNotificationIds.has(`project-feedback-${project.id}`),
             });
         }
     }
@@ -156,7 +162,7 @@ const getMyNotificationsFromDB = async (userId: string, role: string) => {
             description: `${event.project.student.name}: ${event.title}`,
             createdAt: event.createdAt,
             link: `/projects/${event.project.id}`,
-            isUnread: true,
+            isUnread: !readNotificationIds.has(`milestone-${event.id}`),
         });
     }
 
@@ -169,7 +175,7 @@ const getMyNotificationsFromDB = async (userId: string, role: string) => {
                 description: `${project.title} by ${project.student.name}`,
                 createdAt: project.createdAt,
                 link: `/dashboard/admin`,
-                isUnread: true,
+                isUnread: !readNotificationIds.has(`admin-project-submission-${project.id}`),
             });
         }
     }
@@ -184,21 +190,41 @@ const getMyNotificationsFromDB = async (userId: string, role: string) => {
     };
 };
 
-const markAllMessageNotificationsReadInDB = async (userId: string) => {
-    const result = await prisma.message.updateMany({
-        where: {
-            receiverId: userId,
-            isRead: false,
-        },
-        data: {
-            isRead: true,
-        },
-    });
+const markAllNotificationsReadInDB = async (userId: string, role: string) => {
+    const [messageResult, aggregated] = await Promise.all([
+        prisma.message.updateMany({
+            where: {
+                receiverId: userId,
+                isRead: false,
+            },
+            data: {
+                isRead: true,
+            },
+        }),
+        getMyNotificationsFromDB(userId, role),
+    ]);
 
-    return result.count;
+    const nonMessageNotificationIds = aggregated.notifications
+        .filter((item) => item.type !== 'MESSAGE')
+        .map((item) => item.id);
+
+    let nonMessageMarkedCount = 0;
+
+    if (nonMessageNotificationIds.length > 0) {
+        const createResult = await prisma.notificationRead.createMany({
+            data: nonMessageNotificationIds.map((notificationId) => ({
+                userId,
+                notificationId,
+            })),
+            skipDuplicates: true,
+        });
+        nonMessageMarkedCount = createResult.count;
+    }
+
+    return messageResult.count + nonMessageMarkedCount;
 };
 
 export const NotificationService = {
     getMyNotificationsFromDB,
-    markAllMessageNotificationsReadInDB,
+    markAllNotificationsReadInDB,
 };

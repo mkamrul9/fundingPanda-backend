@@ -63,6 +63,7 @@ model User {
   email         String    @unique
   name          String
   role          UserRole  @default(STUDENT)
+  isBanned      Boolean   @default(false)
   image         String?
   bio           String?
   emailVerified Boolean   @default(false)   // Required by BetterAuth
@@ -90,6 +91,7 @@ model User {
   // Chat
   sentMessages     Message[] @relation("SentMessages")
   receivedMessages Message[] @relation("ReceivedMessages")
+  notificationReads NotificationRead[]
 
   @@map("users")
 }
@@ -236,6 +238,16 @@ model Message {
 
   isRead      Boolean  @default(false)
   createdAt   DateTime @default(now())
+}
+
+model NotificationRead {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notificationId String
+  createdAt      DateTime @default(now())
+
+  @@unique([userId, notificationId])
 }
 
 enum UserRole {

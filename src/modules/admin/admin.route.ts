@@ -14,6 +14,12 @@ router.patch(
     AdminController.verifyUser
 );
 router.patch(
+    '/users/:id/ban',
+    checkAuth('ADMIN'),
+    validateRequest(AdminValidation.toggleUserBanZodSchema),
+    AdminController.toggleUserBan
+);
+router.patch(
     '/projects/:id/status',
     checkAuth('ADMIN'),
     validateRequest(AdminValidation.updateProjectStatusZodSchema),

@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import catchAsync from '../../shared/catchAsync';
 import sendResponse from '../../shared/sendResponse';
 import { AdminService } from './admin.service';
-import type { TVerifyUser, TUpdateProjectStatus } from './admin.interface';
+import type { TVerifyUser, TUpdateProjectStatus, TToggleUserBan } from './admin.interface';
 
 const verifyUser = catchAsync(async (req: Request, res: Response) => {
     const { id } = req.params;
@@ -13,6 +13,19 @@ const verifyUser = catchAsync(async (req: Request, res: Response) => {
         statusCode: 200,
         success: true,
         message: 'User verification status updated successfully',
+        data: result,
+    });
+});
+
+const toggleUserBan = catchAsync(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const payload = req.body as TToggleUserBan;
+    const result = await AdminService.toggleUserBanInDB(id as string, payload);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: payload.isBanned ? 'User banned successfully' : 'User unbanned successfully',
         data: result,
     });
 });
@@ -47,6 +60,7 @@ const getModerationQueue = catchAsync(async (req: Request, res: Response) => {
 
 export const AdminController = {
     verifyUser,
+    toggleUserBan,
     changeProjectStatus,
     getAnalytics,
     getModerationQueue,

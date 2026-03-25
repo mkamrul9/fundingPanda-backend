@@ -1,5 +1,5 @@
 import prisma from '../../lib/prisma';
-import { TUpdateProjectStatus, TVerifyUser } from './admin.interface';
+import { TToggleUserBan, TUpdateProjectStatus, TVerifyUser } from './admin.interface';
 
 const verifyUserInDB = async (userId: string, payload: TVerifyUser) => {
     const result = await prisma.user.update({
@@ -64,9 +64,17 @@ const getPlatformAnalytics = async () => {
     };
 };
 
+const toggleUserBanInDB = async (userId: string, payload: TToggleUserBan) => {
+    const result = await prisma.user.update({
+        where: { id: userId },
+        data: { isBanned: payload.isBanned },
+    });
+    return result;
+};
 
 export const AdminService = {
     verifyUserInDB,
+    toggleUserBanInDB,
     changeProjectStatusInDB,
     getModerationQueueFromDB,
     getPlatformAnalytics
