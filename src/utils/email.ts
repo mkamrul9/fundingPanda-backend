@@ -244,6 +244,42 @@ export const sendEmail = async (options: TEmailOptions) => {
     `;
     }
 
+        if (options.templateName === 'contact-admin') {
+                htmlContent = `
+            <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaec; border-radius: 8px;">
+                    <h2 style="color: #1f2937; margin-bottom: 8px;">New Contact Message</h2>
+                    <p style="color: #6b7280; margin-top: 0;">Ticket: <strong>${options.templateData.ticketId}</strong></p>
+                    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;" />
+                    <p><strong>Name:</strong> ${options.templateData.name}</p>
+                    <p><strong>Email:</strong> ${options.templateData.email}</p>
+                    <p><strong>Subject:</strong> ${options.templateData.subject}</p>
+                    <p><strong>Message:</strong></p>
+                    <div style="white-space: pre-wrap; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px; color: #374151;">${options.templateData.message}</div>
+            </div>
+        `;
+        }
+
+        if (options.templateName === 'contact-ack') {
+                htmlContent = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaec; border-radius: 8px;">
+                    <h2 style="color: #333;">Hello ${options.templateData.name},</h2>
+                    <p style="color: #555; font-size: 16px;">Thanks for contacting FundingPanda.</p>
+                    <p style="color: #555; font-size: 16px;">We received your message and created ticket <strong>${options.templateData.ticketId}</strong>.</p>
+                    <p style="color: #777; font-size: 14px;">Our team will respond as soon as possible.</p>
+            </div>
+        `;
+        }
+
+        if (options.templateName === 'newsletter-welcome') {
+                htmlContent = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaec; border-radius: 8px;">
+                    <h2 style="color: #333;">Welcome to FundingPanda Updates</h2>
+                    <p style="color: #555; font-size: 16px;">You are now subscribed with <strong>${options.templateData.email}</strong>.</p>
+                    <p style="color: #777; font-size: 14px;">You will receive curated project highlights and product updates.</p>
+            </div>
+        `;
+        }
+
     if (!htmlContent) {
         throw new Error(`Unsupported email template: ${options.templateName}`);
     }

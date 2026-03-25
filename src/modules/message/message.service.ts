@@ -92,6 +92,10 @@ const getConversationsForUser = async (userId: string) => {
 
     for (const m of messages) {
         const partner = m.senderId === userId ? m.receiver : m.sender;
+        if (partner.id === userId) {
+            continue;
+        }
+
         if (!map.has(partner.id)) {
             map.set(partner.id, {
                 id: partner.id,

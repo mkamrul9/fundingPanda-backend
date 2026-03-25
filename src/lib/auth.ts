@@ -49,6 +49,7 @@ export const auth = betterAuth({
     emailAndPassword: {
         enabled: true,
         requireEmailVerification: true,
+        minPasswordLength: 8,
         async sendResetPassword(data, request) {
             // Avoid blocking API response on email transport latency/failure.
             void sendEmail({

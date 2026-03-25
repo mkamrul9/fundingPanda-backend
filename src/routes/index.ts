@@ -10,6 +10,7 @@ import { TimelineRoutes } from '../modules/timeline/timeline.route';
 import { ReviewRoutes } from '../modules/review/review.route';
 import { MessageRoutes } from '../modules/message/message.route';
 import { NotificationRoutes } from '../modules/notification/notification.route';
+import { EngagementRoutes } from '../modules/engagement/engagement.route';
 
 const router = Router();
 
@@ -53,6 +54,10 @@ const moduleRoutes = [
     {
         path: '/notifications',
         route: NotificationRoutes,
+    },
+    {
+        path: '/',
+        route: EngagementRoutes,
     }
 ];
 
