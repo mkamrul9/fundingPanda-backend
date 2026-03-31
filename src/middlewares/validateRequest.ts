@@ -13,13 +13,14 @@ const validateRequest = (schema: ZodTypeAny) => {
         } catch (err) {
             if (err instanceof ZodError) {
                 const errorMessages = err.issues.map((issue) => ({
-                    field: issue.path.join('.'),
+                    path: issue.path.join('.'),
                     message: issue.message,
                 }));
 
                 return res.status(400).json({
                     success: false,
                     message: 'Validation Failed',
+                    errorSources: errorMessages,
                     errors: errorMessages,
                 });
             }
