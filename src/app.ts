@@ -14,6 +14,23 @@ import prisma from './lib/prisma';
 const app: Application = express();
 app.set('trust proxy', 1);
 
+app.get('/', (req, res) => {
+    return res.status(200).json({
+        success: true,
+        message: 'FundingPanda backend is live.',
+        data: {
+            name: 'FundingPanda API',
+            version: 'v1',
+            status: 'ok',
+            docs: {
+                health: '/api/v1/health',
+                auth: '/api/auth',
+                apiBase: '/api/v1',
+            },
+        },
+    });
+});
+
 // Stripe Webhook needs the raw body
 app.post(
     '/api/v1/donations/webhook',

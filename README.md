@@ -17,6 +17,7 @@ A robust REST + WebSocket backend powering FundingPanda — a platform that conn
 
 ## Table of contents
 
+- [Live deployments](#live-deployments)
 - [Tech stack](#tech-stack)
 - [Prerequisites](#prerequisites)
 - [Environment variables](#environment-variables)
@@ -26,6 +27,17 @@ A robust REST + WebSocket backend powering FundingPanda — a platform that conn
 - [Key API endpoints](#key-api-endpoints)
 - [Contributing](#contributing)
 - [License](#license)
+
+---
+
+## Live deployments
+
+- Frontend (Vercel): https://funding-panda-frontend.vercel.app/
+- Backend (Render): https://fundingpanda-backend.onrender.com/
+
+Quick checks:
+- API root status: https://fundingpanda-backend.onrender.com/
+- API health: https://fundingpanda-backend.onrender.com/api/v1/health
 
 ---
 
