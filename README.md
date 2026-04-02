@@ -193,6 +193,7 @@ erDiagram
 		String email UK
 		String name
 		UserRole role
+		Boolean isBanned
 		String image
 		String bio
 		Boolean emailVerified
@@ -261,6 +262,8 @@ erDiagram
 		String identifier
 		String value
 		DateTime expiresAt
+		DateTime createdAt
+		DateTime updatedAt
 	}
 
 	Project {
@@ -317,6 +320,19 @@ erDiagram
 		DateTime createdAt
 	}
 
+	NotificationRead {
+		String id PK
+		String userId FK
+		String notificationId
+		DateTime createdAt
+	}
+
+	BotAnalytics {
+		String id PK
+		String query
+		DateTime createdAt
+	}
+
 	%% Relationships
 
 	%% Implicit Many-to-Many Relations
@@ -345,6 +361,7 @@ erDiagram
     
 	User ||--o{ Message : "sends"
 	User ||--o{ Message : "receives"
+	User ||--o{ NotificationRead : "tracks notification reads"
 ```
 
 ---
