@@ -34,6 +34,11 @@ const devTrustedOrigins = [
     'http://localhost:5000',
 ].filter((v): v is string => Boolean(v));
 
+const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim();
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+const githubClientId = process.env.GITHUB_CLIENT_ID?.trim();
+const githubClientSecret = process.env.GITHUB_CLIENT_SECRET?.trim();
+
 if (process.env.DEBUG === 'true') {
     console.log('BetterAuth allowedOrigins:', allowedOriginsList);
 }
@@ -63,6 +68,25 @@ export const auth = betterAuth({
                 console.error('Reset password email dispatch failed:', error);
             });
         },
+    },
+
+    socialProviders: {
+        ...(googleClientId && googleClientSecret
+            ? {
+                google: {
+                    clientId: googleClientId,
+                    clientSecret: googleClientSecret,
+                },
+            }
+            : {}),
+        ...(githubClientId && githubClientSecret
+            ? {
+                github: {
+                    clientId: githubClientId,
+                    clientSecret: githubClientSecret,
+                },
+            }
+            : {}),
     },
 
     // Email verification hook used by BetterAuth for email/password flows
