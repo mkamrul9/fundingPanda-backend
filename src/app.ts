@@ -15,6 +15,13 @@ const app: Application = express();
 app.set('trust proxy', 1);
 
 app.get('/', (req, res) => {
+    const frontendUrl = process.env.FRONTEND_URL?.replace(/\/+$/, '');
+    const acceptsHtml = typeof req.headers.accept === 'string' && req.headers.accept.includes('text/html');
+
+    if (frontendUrl && acceptsHtml) {
+        return res.redirect(`${frontendUrl}/dashboard`);
+    }
+
     return res.status(200).json({
         success: true,
         message: 'FundingPanda backend is live.',
