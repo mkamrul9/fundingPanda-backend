@@ -49,9 +49,34 @@ const getMyProfileFromDB = async (userId: string) => {
 };
 
 const updateMyProfileInDB = async (userId: string, payload: any) => {
-    const { categoryIds, ...restData } = payload;
+    const { categoryIds, name, bio, university, role } = payload || {};
 
-    const updateData: any = { ...restData };
+    const existingUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+    });
+
+    if (!existingUser) {
+        throw new AppError(404, 'User not found');
+    }
+
+    const updateData: any = {};
+
+    if (typeof name === 'string') updateData.name = name;
+    if (typeof bio === 'string') updateData.bio = bio;
+    if (typeof university === 'string') updateData.university = university;
+
+    // Allow role switching only between STUDENT and SPONSOR for self-service profile edits.
+    if (typeof role === 'string') {
+        const normalizedRole = role.toUpperCase();
+        const canSwitchRole =
+            (existingUser.role === UserRole.STUDENT || existingUser.role === UserRole.SPONSOR) &&
+            (normalizedRole === UserRole.STUDENT || normalizedRole === UserRole.SPONSOR);
+
+        if (canSwitchRole) {
+            updateData.role = normalizedRole;
+        }
+    }
 
     // If they sent categories, connect them to the user
     if (categoryIds && categoryIds.length > 0) {

@@ -36,6 +36,8 @@ const devTrustedOrigins = [
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim();
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+const facebookClientId = process.env.FACEBOOK_CLIENT_ID?.trim();
+const facebookClientSecret = process.env.FACEBOOK_CLIENT_SECRET?.trim();
 const githubClientId = process.env.GITHUB_CLIENT_ID?.trim();
 const githubClientSecret = process.env.GITHUB_CLIENT_SECRET?.trim();
 
@@ -76,6 +78,14 @@ export const auth = betterAuth({
                 google: {
                     clientId: googleClientId,
                     clientSecret: googleClientSecret,
+                },
+            }
+            : {}),
+        ...(facebookClientId && facebookClientSecret
+            ? {
+                facebook: {
+                    clientId: facebookClientId,
+                    clientSecret: facebookClientSecret,
                 },
             }
             : {}),

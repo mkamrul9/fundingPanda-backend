@@ -29,7 +29,7 @@ const checkAuth = (...requiredRoles: string[]) => {
         try {
             const dbUser = await prisma.user.findUnique({
                 where: { id: session.user.id as string },
-                select: { isBanned: true },
+                select: { isBanned: true, role: true, university: true, bio: true },
             });
 
             if (dbUser?.isBanned) {
@@ -38,11 +38,33 @@ const checkAuth = (...requiredRoles: string[]) => {
                     message: 'Your account has been banned. Please contact support.',
                 });
             }
+
+            const effectiveRole = dbUser?.role || (session.user.role as string);
+
+            // 3. If the route requires specific roles, check the DB-backed role.
+            if (requiredRoles.length && !requiredRoles.includes(effectiveRole)) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Forbidden: You do not have the required permissions.',
+                });
+            }
+
+            // 4. Attach an up-to-date user object for use in controllers.
+            //@ts-ignore
+            req.user = {
+                ...session.user,
+                role: effectiveRole,
+                university: dbUser?.university ?? session.user.university,
+                bio: dbUser?.bio ?? session.user.bio,
+            };
+
+            next();
+            return;
         } catch (error) {
             console.warn('Ban guard skipped due to runtime issue:', error);
         }
 
-        // 3. If the route requires specific roles, check the user's role
+        // Fallback: If DB lookup fails, use session role.
         if (requiredRoles.length && !requiredRoles.includes(session.user.role as string)) {
             return res.status(403).json({
                 success: false,
@@ -50,7 +72,7 @@ const checkAuth = (...requiredRoles: string[]) => {
             });
         }
 
-        // 4. Attach the user to the Express request object for use in controllers
+        // Attach session user in fallback mode.
         //@ts-ignore
         req.user = session.user;
 
