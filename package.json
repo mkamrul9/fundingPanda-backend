@@ -14,7 +14,7 @@
     "start:prod": "node dist/server.cjs",
     "dev": "tsx watch src/server.ts",
     "lint": "eslint .",
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
