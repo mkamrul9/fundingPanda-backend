@@ -101,6 +101,17 @@ app.options(/.*/, cors(corsOptions));
 const betterAuthBaseURL = process.env.BETTER_AUTH_URL || `http://localhost:${process.env.PORT || 5000}`;
 app.use('/api/auth', async (req, res, next) => {
     const headersTyped = req.headers as Record<string, string | string[] | undefined>;
+    const normalizedFrontend = _normalize(process.env.FRONTEND_URL) || 'https://funding-panda-frontend.vercel.app';
+    const callbackPath = req.path.toLowerCase();
+    const isOAuthCallbackRoute = callbackPath.includes('/callback');
+
+    // Some providers can return callback requests with unexpected/empty origin metadata in production.
+    // We normalize these callback requests to a trusted frontend origin before BetterAuth validation.
+    if (process.env.NODE_ENV === 'production' && isOAuthCallbackRoute) {
+        headersTyped.origin = normalizedFrontend;
+        headersTyped.referer = normalizedFrontend;
+    }
+
     try {
         if (req.method === 'POST' && req.path === '/sign-in/email') {
             const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
