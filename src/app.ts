@@ -12,7 +12,7 @@ import prisma from './lib/prisma';
 
 
 const app: Application = express();
-app.set('trust proxy', 1);
+app.set('trust proxy', true);
 const crossSiteCookieMode =
     process.env.NODE_ENV === 'production'
     || (process.env.FRONTEND_URL || '').startsWith('https://')
