@@ -9,6 +9,8 @@ import { sendEmail } from "../utils/email";
 export const _frontend = process.env.FRONTEND_URL || 'http://localhost:3000';
 export const _betterAuth = process.env.BETTER_AUTH_URL || `http://localhost:${process.env.PORT || 5000}`;
 export const _normalize = (u?: string) => u ? u.replace(/\/+$/, '') : u;
+const frontendUrlRaw = process.env.FRONTEND_URL || 'http://localhost:3000';
+const useCrossSiteCookies = process.env.NODE_ENV === 'production' || frontendUrlRaw.startsWith('https://');
 const _extraTrustedOrigins = (process.env.TRUSTED_ORIGINS || '')
     .split(',')
     .map((v) => _normalize(v.trim()))
@@ -209,23 +211,23 @@ export const auth = betterAuth({
     ],
 
     advanced: {
-        useSecureCookies: process.env.NODE_ENV === 'production',
+        useSecureCookies: useCrossSiteCookies,
         // In dev, relax origin and CSRF checks to unblock testing
         disableOriginCheck: process.env.NODE_ENV !== 'production',
         disableCSRFCheck: process.env.NODE_ENV !== 'production',
     },
     // Ensure browser accepts auth cookies for cross-site requests (Vercel -> Render).
     defaultCookieAttributes: {
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        secure: useCrossSiteCookies,
+        sameSite: useCrossSiteCookies ? 'none' : 'lax',
         path: '/',
         httpOnly: true,
     },
     cookies: {
         sessionToken: {
             attributes: {
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                secure: useCrossSiteCookies,
+                sameSite: useCrossSiteCookies ? 'none' : 'lax',
                 path: '/',
                 httpOnly: true,
             },

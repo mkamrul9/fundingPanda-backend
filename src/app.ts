@@ -13,6 +13,7 @@ import prisma from './lib/prisma';
 
 const app: Application = express();
 app.set('trust proxy', 1);
+const crossSiteCookieMode = process.env.NODE_ENV === 'production' || (process.env.FRONTEND_URL || '').startsWith('https://');
 
 app.get('/', (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL?.replace(/\/+$/, '');
@@ -167,7 +168,7 @@ app.use('/api/auth', async (req, res, next) => {
     next();
 }, (req, res, next) => {
     // For separate frontend/backend domains in production, auth cookies must be SameSite=None.
-    if (process.env.NODE_ENV !== 'production') {
+    if (!crossSiteCookieMode) {
         return next();
     }
 
