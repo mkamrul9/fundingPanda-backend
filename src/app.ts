@@ -112,6 +112,36 @@ app.use('/api/auth', async (req, res, next) => {
         headersTyped.referer = normalizedFrontend;
     }
 
+    if (process.env.DEBUG === 'true' && isOAuthCallbackRoute) {
+        const query = req.query as Record<string, unknown>;
+        const hasCode = typeof query.code === 'string' && query.code.length > 0;
+        const hasState = typeof query.state === 'string' && query.state.length > 0;
+        const oauthError = typeof query.error === 'string' ? query.error : undefined;
+
+        console.log('[auth-callback] incoming', {
+            method: req.method,
+            path: req.path,
+            hasCode,
+            hasState,
+            oauthError,
+            origin: headersTyped.origin,
+            referer: headersTyped.referer,
+        });
+
+        res.on('finish', () => {
+            const setCookie = res.getHeader('set-cookie');
+            const cookies = Array.isArray(setCookie) ? setCookie : setCookie ? [String(setCookie)] : [];
+            const hasSessionCookie = cookies.some((cookie) => cookie.includes('better-auth.session_token'));
+
+            console.log('[auth-callback] result', {
+                statusCode: res.statusCode,
+                hasSessionCookie,
+                setCookieCount: cookies.length,
+                location: res.getHeader('location'),
+            });
+        });
+    }
+
     try {
         if (req.method === 'POST' && req.path === '/sign-in/email') {
             const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
