@@ -13,7 +13,10 @@ import prisma from './lib/prisma';
 
 const app: Application = express();
 app.set('trust proxy', 1);
-const crossSiteCookieMode = process.env.NODE_ENV === 'production' || (process.env.FRONTEND_URL || '').startsWith('https://');
+const crossSiteCookieMode =
+    process.env.NODE_ENV === 'production'
+    || (process.env.FRONTEND_URL || '').startsWith('https://')
+    || (process.env.BETTER_AUTH_URL || '').startsWith('https://');
 
 app.get('/', (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL?.replace(/\/+$/, '');
@@ -63,6 +66,7 @@ const corsAllowedOrigins = new Set(
         process.env.BETTER_AUTH_URL,
         ...allowedOriginsList,
         'https://funding-panda-frontend.vercel.app',
+        'https://fundingpanda-frontend.vercel.app',
         'http://localhost:3000',
         'http://127.0.0.1:3000',
         'http://localhost:5173',
@@ -188,6 +192,11 @@ app.use('/api/auth', async (req, res, next) => {
 
                 if (!/;\s*Secure/i.test(nextCookie)) {
                     nextCookie = `${nextCookie}; Secure`;
+                }
+
+                // Helps modern browsers keep cross-site cookies available under stricter privacy modes.
+                if (!/;\s*Partitioned/i.test(nextCookie)) {
+                    nextCookie = `${nextCookie}; Partitioned`;
                 }
 
                 return nextCookie;

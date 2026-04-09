@@ -19,6 +19,7 @@ export const allowedOriginsList = Array.from(new Set([
     _normalize(_frontend),
     _normalize(_betterAuth),
     'https://funding-panda-frontend.vercel.app',
+    'https://fundingpanda-frontend.vercel.app',
     ..._extraTrustedOrigins,
     'http://localhost:5173',
     'http://127.0.0.1:5173',

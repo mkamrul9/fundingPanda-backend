@@ -18,6 +18,7 @@ if (process.env.NODE_ENV === 'production' && !frontendUrl) {
 const socketAllowedOrigins = [
     frontendUrl,
     'https://funding-panda-frontend.vercel.app',
+    'https://fundingpanda-frontend.vercel.app',
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'http://localhost:5173',
