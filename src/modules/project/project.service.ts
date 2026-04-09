@@ -26,7 +26,7 @@ const getAllProjectsFromDB = async (query: Record<string, unknown>) => {
         finalQuery,
         {
             searchableFields: ['title', 'description', 'student.name'],
-            filterableFields: ['status', 'goalAmount', 'student.university']
+            filterableFields: ['status', 'goalAmount', 'student.university', 'categories.some.id']
         }
     )
         .search()
@@ -35,8 +35,11 @@ const getAllProjectsFromDB = async (query: Record<string, unknown>) => {
         .paginate()
         .fields()
         .dynamicInclude(
-            { student: { select: { name: true, email: true, university: true } } },
-            ['student'] // Default include student details
+            {
+                student: { select: { name: true, email: true, university: true } },
+                categories: true,
+            },
+            ['student', 'categories'] // Default include student details and categories
         );
 
     return await projectQuery.execute();
