@@ -235,11 +235,6 @@ app.use('/api/auth', async (req, res, next) => {
                     nextCookie = `${nextCookie}; Secure`;
                 }
 
-                // Helps modern browsers keep cross-site cookies available under stricter privacy modes.
-                if (!/;\s*Partitioned/i.test(nextCookie)) {
-                    nextCookie = `${nextCookie}; Partitioned`;
-                }
-
                 return nextCookie;
             });
 
