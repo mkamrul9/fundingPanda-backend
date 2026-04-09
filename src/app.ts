@@ -13,6 +13,7 @@ import prisma from './lib/prisma';
 
 const app: Application = express();
 app.set('trust proxy', true);
+const betterAuthBaseURL = process.env.BETTER_AUTH_URL || `http://localhost:${process.env.PORT || 5000}`;
 const crossSiteCookieMode =
     process.env.NODE_ENV === 'production'
     || (process.env.FRONTEND_URL || '').startsWith('https://')
@@ -97,8 +98,73 @@ const corsOptions: cors.CorsOptions = {
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
 
+// Start OAuth via top-level backend navigation to avoid state cookie partition mismatches.
+app.get('/api/auth/start/:provider', async (req, res) => {
+    const provider = String(req.params.provider || '').trim().toLowerCase();
+    const allowedProviders = new Set(['google', 'facebook', 'github']);
+
+    if (!allowedProviders.has(provider)) {
+        return res.status(400).json({
+            success: false,
+            message: 'Unsupported OAuth provider.',
+        });
+    }
+
+    const normalizedFrontend = _normalize(process.env.FRONTEND_URL) || 'https://funding-panda-frontend.vercel.app';
+    const dashboardUrl = `${normalizedFrontend}/dashboard?oauth=success`;
+    const loginUrl = `${normalizedFrontend}/login`;
+
+    const callbackURL = typeof req.query.callbackURL === 'string' && req.query.callbackURL.trim().length > 0
+        ? req.query.callbackURL
+        : dashboardUrl;
+    const newUserCallbackURL = typeof req.query.newUserCallbackURL === 'string' && req.query.newUserCallbackURL.trim().length > 0
+        ? req.query.newUserCallbackURL
+        : callbackURL;
+    const errorCallbackURL = typeof req.query.errorCallbackURL === 'string' && req.query.errorCallbackURL.trim().length > 0
+        ? req.query.errorCallbackURL
+        : `${loginUrl}?oauth=error`;
+
+    try {
+        const response = await fetch(`${betterAuthBaseURL.replace(/\/+$/, '')}/api/auth/sign-in/social`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                origin: normalizedFrontend,
+            },
+            body: JSON.stringify({
+                provider,
+                callbackURL,
+                newUserCallbackURL,
+                errorCallbackURL,
+            }),
+        });
+
+        const body = await response.json() as { url?: string; error?: { message?: string } };
+
+        if (!response.ok || !body?.url) {
+            return res.status(response.status || 500).json({
+                success: false,
+                message: body?.error?.message || 'Failed to initialize social login.',
+            });
+        }
+
+        const getSetCookie = (response.headers as unknown as { getSetCookie?: () => string[] }).getSetCookie;
+        const setCookies = typeof getSetCookie === 'function' ? getSetCookie.call(response.headers) : [];
+        if (setCookies.length > 0) {
+            res.setHeader('set-cookie', setCookies);
+        }
+
+        return res.redirect(body.url);
+    } catch (error) {
+        console.error('OAuth start route failed:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to initialize social login.',
+        });
+    }
+});
+
 // BetterAuth Core Route 
-const betterAuthBaseURL = process.env.BETTER_AUTH_URL || `http://localhost:${process.env.PORT || 5000}`;
 app.use('/api/auth', async (req, res, next) => {
     const headersTyped = req.headers as Record<string, string | string[] | undefined>;
     const normalizedFrontend = _normalize(process.env.FRONTEND_URL) || 'https://funding-panda-frontend.vercel.app';
