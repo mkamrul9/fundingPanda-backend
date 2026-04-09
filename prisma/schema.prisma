@@ -117,8 +117,12 @@ model Account {
   userId                String
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessToken           String?
+  accessTokenExpiresAt  DateTime?
   refreshToken          String?
+  refreshTokenExpiresAt DateTime?
   idToken               String?
+  tokenType             String?
+  scope                 String?
   expiresAt             DateTime?
   password              String?
   createdAt             DateTime  @default(now())

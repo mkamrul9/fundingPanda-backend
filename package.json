@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsup src/server.ts --format cjs --clean",
     "build:prod": "tsup src/server.ts --out-dir dist --format cjs --target node18 --clean --minify",
-    "build:render": "npx prisma generate && npm run seed && npm run build",
+    "build:render": "npx prisma db push && npx prisma generate && npm run seed && npm run build",
     "db:push": "npx prisma db push",
     "db:migrate:deploy": "npx prisma migrate deploy",
     "test": "echo \"Error: no test specified\" && exit 1",
